@@ -1,0 +1,13 @@
+{
+  "name": "TheVHomes - Premium Real Estate Marketplace",
+  "short_name": "TheVHomes",
+  "description": "Luxury Homes. Smart Investments. Better Living.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08080a",
+  "theme_color": "#08080a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Playfair Display", "Georgia", serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #08080a;
+  color: #f5f5f6;
+}
+
+::selection {
+  background-color: #0b8a85;
+  color: #08080a;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #121215;
+}
+::-webkit-scrollbar-thumb {
+  background: #4a4a54;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0b8a85;
+}
+
+.text-balance {
+  text-wrap: balance;
+}

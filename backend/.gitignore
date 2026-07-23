@@ -1,0 +1,12 @@
+# Binaries
+thevhomes-api
+*.exe
+*.test
+*.out
+
+# Env
+.env
+
+# IDE
+.idea/
+.vscode/
