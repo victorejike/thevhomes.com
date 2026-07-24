@@ -17,6 +17,8 @@ export default function NewListingPage() {
     price: "",
     city: CITIES[0],
     address: "",
+    latitude: "",
+    longitude: "",
     property_type: "apartment",
     purpose: "buy",
     bedrooms: "",
@@ -26,7 +28,11 @@ export default function NewListingPage() {
     parking: false,
     security: false,
     swimming_pool: false,
+    amenities: "",
     image_urls: "",
+    cover_image_url: "",
+    is_paid_viewing: false,
+    viewing_fee: "",
   });
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -39,12 +45,14 @@ export default function NewListingPage() {
     e.preventDefault();
     setStatus("loading");
     try {
-      await api.properties.create({
+      const property = await api.properties.create({
         title: form.title,
         description: form.description,
         price: Number(form.price),
         city: form.city,
         address: form.address,
+        latitude: Number(form.latitude) || 0,
+        longitude: Number(form.longitude) || 0,
         property_type: form.property_type,
         purpose: form.purpose,
         bedrooms: Number(form.bedrooms) || 0,
@@ -54,12 +62,19 @@ export default function NewListingPage() {
         parking: form.parking,
         security: form.security,
         swimming_pool: form.swimming_pool,
+        amenities: form.amenities
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
         image_urls: form.image_urls
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
+        cover_image_url: form.cover_image_url,
+        is_paid_viewing: form.is_paid_viewing,
+        viewing_fee: Number(form.viewing_fee) || 0,
       });
-      router.push("/dashboard/properties");
+      router.push(`/dashboard/properties/${property.id}/tour`);
     } catch (err) {
       setStatus("error");
       setErrorMessage(err instanceof ApiError ? err.message : "Failed to create listing.");
@@ -70,7 +85,8 @@ export default function NewListingPage() {
     <div className="max-w-2xl">
       <h1 className="font-display text-2xl font-semibold text-white">List a New Property</h1>
       <p className="mt-1 text-white/50">
-        Fill in the details below. Listings start as &quot;Pending&quot; until reviewed by our team.
+        Fill in the details below. After creating the listing, you&apos;ll capture a required 3D
+        tour, then submit it for admin review before it goes live.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -122,6 +138,31 @@ export default function NewListingPage() {
             className={inputClass}
           />
         </Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Latitude">
+            <input
+              required
+              type="number"
+              step="any"
+              value={form.latitude}
+              onChange={(e) => update("latitude", e.target.value)}
+              placeholder="9.0765"
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Longitude">
+            <input
+              required
+              type="number"
+              step="any"
+              value={form.longitude}
+              onChange={(e) => update("longitude", e.target.value)}
+              placeholder="7.3986"
+              className={inputClass}
+            />
+          </Field>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <Field label="Property Type">
@@ -189,14 +230,58 @@ export default function NewListingPage() {
           ))}
         </div>
 
-        <Field label="Image URLs (comma separated)">
+        <Field label="Amenities (comma separated, required)">
           <input
+            required
+            value={form.amenities}
+            onChange={(e) => update("amenities", e.target.value)}
+            placeholder="Gym, Pool, 24/7 Power, Smart Home"
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="Image URLs (comma separated, at least one required)">
+          <input
+            required
             value={form.image_urls}
             onChange={(e) => update("image_urls", e.target.value)}
             placeholder="https://... , https://..."
             className={inputClass}
           />
         </Field>
+
+        <Field label="Cover Photo URL (optional — defaults to first image above)">
+          <input
+            value={form.cover_image_url}
+            onChange={(e) => update("cover_image_url", e.target.value)}
+            placeholder="https://..."
+            className={inputClass}
+          />
+        </Field>
+
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <label className="flex items-center gap-2 text-sm text-white/80">
+            <input
+              type="checkbox"
+              checked={form.is_paid_viewing}
+              onChange={(e) => update("is_paid_viewing", e.target.checked)}
+              className="h-4 w-4 rounded border-white/20 bg-white/10 accent-teal-400"
+            />
+            This is a paid Professional Property Viewing service
+          </label>
+          {form.is_paid_viewing && (
+            <div className="mt-3">
+              <Field label="Viewing Fee (NGN)">
+                <input
+                  type="number"
+                  value={form.viewing_fee}
+                  onChange={(e) => update("viewing_fee", e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+          )}
+        </div>
 
         {status === "error" && <p className="text-sm text-red-400">{errorMessage}</p>}
 
@@ -207,7 +292,7 @@ export default function NewListingPage() {
           whileTap={{ scale: 0.97 }}
           className="w-full rounded-full bg-teal-gradient py-3 text-sm font-semibold text-charcoal-950 disabled:opacity-50"
         >
-          {status === "loading" ? "Publishing..." : "Publish Listing"}
+          {status === "loading" ? "Creating..." : "Create Listing & Continue to 3D Tour"}
         </motion.button>
       </form>
     </div>

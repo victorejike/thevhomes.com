@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { MotionLink, tapScale } from "@/components/motion-link";
 
+const NAV = [
+  { href: "/admin", label: "Overview" },
+  { href: "/admin/verifications", label: "Identity Verification" },
+  { href: "/admin/agents", label: "Agent Approval" },
+  { href: "/admin/properties", label: "Property Review" },
+  { href: "/admin/bookings", label: "Viewing Management" },
+  { href: "/admin/payments", label: "Payments" },
+];
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
+  const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => setHydrated(true), []);
@@ -40,6 +51,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           THE<span className="text-teal-400">V</span>HOMES <span className="text-sm text-white/40">Admin</span>
         </MotionLink>
+        <nav className="mt-4 flex flex-wrap gap-2">
+          {NAV.map((item) => (
+            <MotionLink
+              key={item.href}
+              href={item.href}
+              whileHover={{ y: -1 }}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                pathname === item.href
+                  ? "bg-teal-gradient text-charcoal-950"
+                  : "text-white/60 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              {item.label}
+            </MotionLink>
+          ))}
+        </nav>
       </header>
       <main className="p-6 lg:p-10">{children}</main>
     </div>

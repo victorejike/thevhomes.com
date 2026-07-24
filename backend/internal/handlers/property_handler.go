@@ -35,14 +35,19 @@ func NewPropertyHandler(db *gorm.DB, c *cache.Cache) *PropertyHandler {
 //	city, property_type, purpose, min_price, max_price, bedrooms, bathrooms,
 //	furnished, parking, security, swimming_pool, q (free text), page, page_size
 func (h *PropertyHandler) List(c *gin.Context) {
+	_, authenticated := c.Get("user_id")
+
 	cacheKey := propertyCacheKeyPrefix + c.Request.URL.RawQuery
-	if cached, ok := h.Cache.Get(c.Request.Context(), cacheKey); ok {
-		c.Header("X-Cache", "HIT")
-		c.Data(http.StatusOK, "application/json", []byte(cached))
-		return
+	if !authenticated {
+		if cached, ok := h.Cache.Get(c.Request.Context(), cacheKey); ok {
+			c.Header("X-Cache", "HIT")
+			c.Data(http.StatusOK, "application/json", []byte(cached))
+			return
+		}
 	}
 
-	query := h.DB.Model(&models.Property{}).Preload("Images").Preload("Agent").Preload("Agent.User")
+	query := h.DB.Model(&models.Property{}).Preload("Images").Preload("Agent").Preload("Agent.User").Preload("Tour")
+	query = h.applyVisibility(c, query)
 
 	if agentID := c.Query("agent_id"); agentID != "" {
 		query = query.Where("agent_id = ?", agentID)
@@ -116,8 +121,10 @@ func (h *PropertyHandler) List(c *gin.Context) {
 		},
 	}
 
-	if encoded, err := json.Marshal(responseBody); err == nil {
-		h.Cache.Set(c.Request.Context(), cacheKey, string(encoded), 60*time.Second)
+	if !authenticated {
+		if encoded, err := json.Marshal(responseBody); err == nil {
+			h.Cache.Set(c.Request.Context(), cacheKey, string(encoded), 60*time.Second)
+		}
 	}
 
 	c.JSON(http.StatusOK, responseBody)
@@ -128,7 +135,7 @@ func (h *PropertyHandler) Get(c *gin.Context) {
 	id := c.Param("id")
 
 	var property models.Property
-	query := h.DB.Preload("Images").Preload("Agent").Preload("Agent.User").Preload("Reviews")
+	query := h.DB.Preload("Images").Preload("Agent").Preload("Agent.User").Preload("Reviews").Preload("Tour").Preload("Tour.Scenes")
 
 	// Allow lookup by UUID or SEO-friendly slug.
 	if _, err := uuid.Parse(id); err == nil {
@@ -142,7 +149,38 @@ func (h *PropertyHandler) Get(c *gin.Context) {
 		return
 	}
 
+	if property.ListingStatus != models.ListingVerified && !h.canModify(c, property) {
+		utils.Error(c, http.StatusNotFound, "property not found")
+		return
+	}
+
 	utils.Success(c, http.StatusOK, "property fetched", property)
+}
+
+// applyVisibility restricts the property list to publicly "verified"
+// listings, unless the caller is an admin (sees everything) or an
+// authenticated agent (who additionally sees their own listings regardless
+// of review status, e.g. drafts/pending/rejected in their dashboard).
+func (h *PropertyHandler) applyVisibility(c *gin.Context, query *gorm.DB) *gorm.DB {
+	if c.GetString("role") == string(models.RoleAdmin) {
+		return query
+	}
+
+	userIDVal, ok := c.Get("user_id")
+	if !ok {
+		return query.Where("listing_status = ?", models.ListingVerified)
+	}
+
+	uid, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		return query.Where("listing_status = ?", models.ListingVerified)
+	}
+
+	var agent models.Agent
+	if err := h.DB.Where("user_id = ?", uid).First(&agent).Error; err == nil {
+		return query.Where("listing_status = ? OR agent_id = ?", models.ListingVerified, agent.ID)
+	}
+	return query.Where("listing_status = ?", models.ListingVerified)
 }
 
 type propertyRequest struct {
@@ -168,6 +206,9 @@ type propertyRequest struct {
 	VideoURLs      []string `json:"video_urls"`
 	VirtualTourURL string   `json:"virtual_tour_url"`
 	ImageURLs      []string `json:"image_urls"`
+	CoverImageURL  string   `json:"cover_image_url"`
+	IsPaidViewing  bool     `json:"is_paid_viewing"`
+	ViewingFee     float64  `json:"viewing_fee"`
 }
 
 // Create handles POST /api/v1/properties (agent/admin only).
@@ -184,12 +225,29 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 		utils.Error(c, http.StatusForbidden, "only agents may create listings; complete your agent profile first")
 		return
 	}
+	if !agent.CanPublishListings() {
+		utils.Error(c, http.StatusForbidden, "only agents with an approved TheVHomes agent number may create listings; complete identity verification and agent onboarding first")
+		return
+	}
+	if len(req.Amenities) == 0 || req.Address == "" || (req.Latitude == 0 && req.Longitude == 0) {
+		utils.Error(c, http.StatusBadRequest, "address, coordinates (latitude/longitude), and at least one amenity are required")
+		return
+	}
+	if len(req.ImageURLs) == 0 {
+		utils.Error(c, http.StatusBadRequest, "at least one property image is required")
+		return
+	}
 
 	if req.Currency == "" {
 		req.Currency = "NGN"
 	}
 	if req.Country == "" {
 		req.Country = "Nigeria"
+	}
+
+	coverImage := req.CoverImageURL
+	if coverImage == "" && len(req.ImageURLs) > 0 {
+		coverImage = req.ImageURLs[0]
 	}
 
 	property := models.Property{
@@ -215,6 +273,10 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 		Amenities:      models.StringArray(req.Amenities),
 		VideoURLs:      models.StringArray(req.VideoURLs),
 		VirtualTourURL: req.VirtualTourURL,
+		CoverImageURL:  coverImage,
+		ListingStatus:  models.ListingDraft,
+		IsPaidViewing:  req.IsPaidViewing,
+		ViewingFee:     req.ViewingFee,
 		AgentID:        agent.ID,
 		Available:      true,
 	}
@@ -229,8 +291,13 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 		h.DB.Create(&img)
 	}
 
+	// Every listing starts with a not_started 3D tour placeholder; the agent
+	// must bring this to TourReady (see tour_handler.go) before the listing
+	// can be submitted for admin review (see property_review_handler.go).
+	h.DB.Create(&models.PropertyTour{PropertyID: property.ID, Status: models.TourNotStarted})
+
 	h.Cache.InvalidatePrefix(c.Request.Context(), propertyCacheKeyPrefix)
-	utils.Success(c, http.StatusCreated, "property created", property)
+	utils.Success(c, http.StatusCreated, "property created as a draft — add photos and a 3D tour, then submit for review", property)
 }
 
 // Update handles PUT /api/v1/properties/:id (owning agent or admin only).

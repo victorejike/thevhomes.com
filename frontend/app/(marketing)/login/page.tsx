@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { AuthFormShell } from "@/components/auth-form-shell";
+import { GoogleAuthButton } from "@/components/google-auth-button";
 import { MotionLink } from "@/components/motion-link";
 import { api, ApiError } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
@@ -84,6 +85,13 @@ export default function LoginPage() {
           {loading ? "Signing in..." : "Sign In"}
         </motion.button>
       </form>
+
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-white/10" />
+        <span className="text-xs text-white/40">OR</span>
+        <div className="h-px flex-1 bg-white/10" />
+      </div>
+      <GoogleAuthButton label="Sign in with Google" />
     </AuthFormShell>
   );
 }

@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarCheck, MapPin } from "lucide-react";
+import { CalendarCheck, MapPin, QrCode, Video } from "lucide-react";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { MotionLink, tapScale } from "@/components/motion-link";
+import type { Booking } from "@/lib/types";
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-amber-500/20 text-amber-300",
@@ -20,6 +22,8 @@ export default function BookingsPage() {
     queryFn: () => api.bookings.listMine(),
     retry: false,
   });
+
+  const [ticketFor, setTicketFor] = useState<Booking | null>(null);
 
   return (
     <div>
@@ -65,15 +69,72 @@ export default function BookingsPage() {
                 </p>
               )}
               <p className="mt-1 text-sm text-white/50">{formatDate(booking.scheduled_date)}</p>
+              {booking.viewing_type && booking.viewing_type !== "physical" && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-teal-300">
+                  <Video size={12} /> {booking.viewing_type === "virtual" ? "Live Video Tour" : "Video Inspection"}
+                </p>
+              )}
             </div>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${STATUS_STYLES[booking.status]}`}
-            >
-              {booking.status}
-            </span>
+            <div className="flex items-center gap-3">
+              {booking.payment_required && !booking.ticket && (
+                <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-300">
+                  Payment Pending
+                </span>
+              )}
+              {booking.ticket && (
+                <button
+                  onClick={() => setTicketFor(booking)}
+                  className="flex items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium text-white hover:border-teal-400/40"
+                >
+                  <QrCode size={13} /> Ticket
+                </button>
+              )}
+              {booking.viewing_type && booking.viewing_type !== "physical" && (
+                <MotionLink
+                  href={`/dashboard/bookings/${booking.id}/live`}
+                  {...tapScale}
+                  className="flex items-center gap-1.5 rounded-full bg-teal-gradient px-3 py-1.5 text-xs font-semibold text-charcoal-950"
+                >
+                  <Video size={13} /> Join
+                </MotionLink>
+              )}
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${STATUS_STYLES[booking.status]}`}
+              >
+                {booking.status}
+              </span>
+            </div>
           </motion.div>
         ))}
       </div>
+
+      {ticketFor?.ticket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setTicketFor(null)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-charcoal-900 p-6 text-center shadow-2xl"
+          >
+            <h3 className="font-display text-lg font-semibold text-white">Viewing Ticket</h3>
+            <p className="mt-1 text-sm text-white/50">{ticketFor.property?.title}</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ticketFor.ticket.qr_code_url}
+              alt="Viewing ticket QR code"
+              className="mx-auto mt-4 h-48 w-48 rounded-xl bg-white p-2"
+            />
+            <p className="mt-3 font-mono text-sm text-teal-300">{ticketFor.ticket.ticket_code}</p>
+            <p className="mt-1 text-xs text-white/40 capitalize">Status: {ticketFor.ticket.status.replace("_", " ")}</p>
+            <button
+              onClick={() => setTicketFor(null)}
+              className="mt-5 w-full rounded-full border border-white/15 py-2.5 text-sm font-medium text-white"
+            >
+              Close
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

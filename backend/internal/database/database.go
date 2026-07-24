@@ -28,6 +28,10 @@ func Connect(dsn string) (*gorm.DB, error) {
 }
 
 func migrate(db *gorm.DB) error {
+	// AutoMigrate is additive/backward-compatible: existing columns/tables are
+	// preserved, and only missing tables/columns/indexes are created. Order
+	// matters for foreign keys — dependents are migrated after what they
+	// reference.
 	return db.AutoMigrate(
 		&models.User{},
 		&models.Agent{},
@@ -39,5 +43,30 @@ func migrate(db *gorm.DB) error {
 		&models.Review{},
 		&models.Payment{},
 		&models.Investment{},
+
+		// Phase 2: auth + identity verification
+		&models.GoogleAccount{},
+		&models.RefreshTokenRecord{},
+		&models.IdentityVerification{},
+		&models.VerifyMeResponse{},
+		&models.AuditLog{},
+
+		// Phase 2: agent onboarding + approval
+		&models.AgentApplication{},
+		&models.AgentNumberSequence{},
+
+		// Phase 2: property verification + 3D tours + maps
+		&models.PropertyReview{},
+		&models.PropertyVerificationLog{},
+		&models.PropertyTour{},
+		&models.PropertyTourScene{},
+		&models.PropertyNearbyPlace{},
+
+		// Phase 2: viewing payments, tickets, live sessions
+		&models.ViewingTicket{},
+		&models.LiveViewingSession{},
+
+		// Phase 2: notifications
+		&models.Notification{},
 	)
 }

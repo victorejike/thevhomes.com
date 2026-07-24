@@ -1,14 +1,21 @@
 import type {
   Agent,
+  AgentApplication,
   ApiResponse,
+  AppNotification,
   AuthUser,
   Booking,
   ChatMessage,
   Conversation,
+  IdentityVerification,
   Investment,
+  LiveViewingSession,
   PaginatedProperties,
+  Payment,
   Property,
   PropertySearchFilters,
+  PropertyTour,
+  ViewingTicket,
 } from "./types";
 import { MOCK_AGENTS, MOCK_INVESTMENTS, MOCK_PROPERTIES } from "./mock-data";
 
@@ -90,6 +97,8 @@ export const api = {
     update: (id: string, payload: Record<string, unknown>) =>
       request<Property>(`/properties/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
     remove: (id: string) => request<null>(`/properties/${id}`, { method: "DELETE" }),
+    submitForReview: (id: string) =>
+      request<{ listing_status: string }>(`/properties/${id}/submit-for-review`, { method: "POST" }),
   },
   investments: {
     async list(): Promise<Investment[]> {
@@ -136,11 +145,158 @@ export const api = {
         { method: "POST", body: JSON.stringify(payload) }
       ),
     me: () => request<AuthUser>("/auth/me"),
+    logout: (refreshToken: string) =>
+      request<null>("/auth/logout", { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) }),
+    googleAuthUrl: () => request<{ auth_url: string; state: string }>("/auth/google"),
+    exchangeGoogleCode: (code: string) =>
+      request<{ user: AuthUser; access_token: string; refresh_token: string }>("/auth/google/exchange", {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      }),
+  },
+  verification: {
+    submit: (payload: {
+      full_name: string;
+      nin: string;
+      date_of_birth: string;
+      phone_number: string;
+      selfie_url?: string;
+    }) => request<{ status: string; badge: string }>("/verification/identity", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+    status: () => request<IdentityVerification | { status: "not_submitted" }>("/verification/identity/me"),
+  },
+  agentApplications: {
+    submit: (payload: {
+      business_name: string;
+      office_address: string;
+      cac_number?: string;
+      cac_document_url?: string;
+      government_id_url: string;
+      profile_photo_url: string;
+      selfie_url?: string;
+    }) => request<AgentApplication>("/agents/applications", { method: "POST", body: JSON.stringify(payload) }),
+    mine: () => request<{ agent: Agent; applications: AgentApplication[] }>("/agents/applications/me"),
+  },
+  tours: {
+    get: (propertyId: string) => request<PropertyTour>(`/properties/${propertyId}/tour`),
+    start: (propertyId: string, captureMethod: string) =>
+      request<PropertyTour>(`/properties/${propertyId}/tour/start`, {
+        method: "POST",
+        body: JSON.stringify({ capture_method: captureMethod }),
+      }),
+    addScene: (
+      propertyId: string,
+      payload: { room_name: string; media_url: string; scene_type: string }
+    ) =>
+      request(`/properties/${propertyId}/tour/scenes`, { method: "POST", body: JSON.stringify(payload) }),
+    complete: (
+      propertyId: string,
+      payload?: { asset_url?: string; thumbnail_url?: string; processing_provider?: string; processing_job_id?: string }
+    ) =>
+      request<PropertyTour>(`/properties/${propertyId}/tour/complete`, {
+        method: "POST",
+        body: JSON.stringify(payload ?? {}),
+      }),
+  },
+  payments: {
+    initialize: (payload: {
+      amount: number;
+      currency?: string;
+      purpose: "booking_fee" | "reservation" | "consultation" | "shortlet_booking" | "viewing_fee";
+      provider: "paystack" | "flutterwave";
+      property_id?: string;
+      booking_id?: string;
+    }) =>
+      request<{ payment: Payment; checkout_url?: string } | Payment>("/payments/initialize", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    verify: (reference: string) =>
+      request<{ payment: Payment; receipt: Record<string, unknown> }>(`/payments/${reference}/verify`),
+    requestRefund: (reference: string, reason: string) =>
+      request<Payment>(`/payments/${reference}/refund-request`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      }),
+  },
+  notifications: {
+    listMine: () => request<{ items: AppNotification[]; unread_count: number }>("/notifications/me"),
+    markRead: (id: string) => request<null>(`/notifications/${id}/read`, { method: "PATCH" }),
+    markAllRead: () => request<null>("/notifications/read-all", { method: "PATCH" }),
+  },
+  admin: {
+    stats: () => request<Record<string, unknown>>("/admin/stats"),
+    bookings: (params: Record<string, string> = {}) =>
+      request<Booking[]>(`/admin/bookings${buildQuery(params)}`),
+    payments: (params: Record<string, string> = {}) =>
+      request<Payment[]>(`/admin/payments${buildQuery(params)}`),
+    resolveRefund: (reference: string, decision: "approved" | "rejected" | "refunded", notes?: string) =>
+      request<Payment>(`/admin/payments/${reference}/refund`, {
+        method: "PATCH",
+        body: JSON.stringify({ decision, notes }),
+      }),
+    auditLogs: () => request<Record<string, unknown>[]>("/admin/audit-logs"),
+    verifications: (status?: string) =>
+      request<IdentityVerification[]>(`/admin/verifications${status ? `?status=${status}` : ""}`),
+    reviewVerification: (id: string, status: "verified" | "rejected", notes?: string) =>
+      request<IdentityVerification>(`/admin/verifications/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status, notes }),
+      }),
+    agentApplications: (status?: string) =>
+      request<AgentApplication[]>(`/admin/agent-applications${status ? `?status=${status}` : ""}`),
+    reviewAgentApplication: (
+      id: string,
+      decision: "approve" | "reject" | "under_review",
+      notes?: string
+    ) =>
+      request<AgentApplication>(`/admin/agent-applications/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ decision, notes }),
+      }),
+    propertyReviewQueue: (status?: string) =>
+      request<Property[]>(`/admin/properties/review-queue${status ? `?status=${status}` : ""}`),
+    reviewProperty: (
+      id: string,
+      payload: {
+        status: "under_inspection" | "verified" | "rejected";
+        images_checked?: boolean;
+        ownership_doc_checked?: boolean;
+        location_checked?: boolean;
+        details_checked?: boolean;
+        tour_checked?: boolean;
+        notes?: string;
+        premium_listing?: boolean;
+      }
+    ) =>
+      request<Property>(`/admin/properties/${id}/review`, { method: "PATCH", body: JSON.stringify(payload) }),
   },
   bookings: {
-    create: (payload: { property_id: string; scheduled_date: string; notes?: string }) =>
-      request<Booking>("/bookings", { method: "POST", body: JSON.stringify(payload) }),
+    create: (payload: {
+      property_id: string;
+      scheduled_date: string;
+      notes?: string;
+      viewing_type?: "physical" | "virtual" | "video";
+    }) => request<Booking>("/bookings", { method: "POST", body: JSON.stringify(payload) }),
     listMine: () => request<Booking[]>("/bookings/me"),
+    get: (id: string) => request<Booking>(`/bookings/${id}`),
+    updateStatus: (id: string, status: "pending" | "confirmed" | "completed" | "cancelled") =>
+      request<Booking>(`/bookings/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+    getTicket: (bookingId: string) => request<ViewingTicket>(`/bookings/${bookingId}/ticket`),
+    checkInTicket: (bookingId: string) =>
+      request<ViewingTicket>(`/bookings/${bookingId}/ticket/check-in`, { method: "PATCH" }),
+    getLiveSession: (bookingId: string) => request<LiveViewingSession>(`/bookings/${bookingId}/live-session`),
+  },
+  liveSessions: {
+    start: (token: string) =>
+      request<LiveViewingSession>(`/live-sessions/${token}/start`, { method: "PATCH" }),
+    end: (token: string, recordingUrl?: string) =>
+      request<LiveViewingSession>(`/live-sessions/${token}/end`, {
+        method: "PATCH",
+        body: JSON.stringify({ recording_url: recordingUrl }),
+      }),
   },
   conversations: {
     list: () => request<Conversation[]>("/conversations"),
@@ -151,6 +307,13 @@ export const api = {
       }),
     history: (conversationId: string) =>
       request<ChatMessage[]>(`/conversations/${conversationId}/messages`),
+  },
+  uploads: {
+    presign: (filename: string, contentType: string) =>
+      request<{ upload_url: string; public_url: string; expires_in: number }>("/uploads/presign", {
+        method: "POST",
+        body: JSON.stringify({ filename, content_type: contentType }),
+      }),
   },
   ai: {
     async ask(message: string) {

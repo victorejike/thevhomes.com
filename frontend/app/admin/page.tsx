@@ -2,18 +2,29 @@
 
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { Building2, MessageCircle, ShieldCheck, Users } from "lucide-react";
+import { Award, Building2, ClipboardCheck, ShieldCheck, Users, Wallet } from "lucide-react";
 import { api } from "@/lib/api";
 import { VerificationBadge } from "@/components/badge";
 import { formatPrice } from "@/lib/format";
 
-/**
- * Admin analytics overview. Property/agent counts are computed from the
- * live list endpoints; revenue/messages/user totals are illustrative
- * placeholders until dedicated backend aggregate endpoints
- * (e.g. GET /api/v1/admin/stats) are implemented.
- */
+interface AdminStats {
+  total_users: number;
+  total_agents: number;
+  approved_agents: number;
+  pending_verifications: number;
+  pending_agent_apps: number;
+  pending_property_review: number;
+  verified_properties: number;
+  upcoming_bookings: number;
+  total_revenue: number;
+}
+
 export default function AdminDashboardPage() {
+  const { data: stats } = useQuery({
+    queryKey: ["admin", "stats"],
+    queryFn: () => api.admin.stats() as unknown as Promise<AdminStats>,
+    retry: false,
+  });
   const { data: properties } = useQuery({
     queryKey: ["properties", "admin-overview"],
     queryFn: () => api.properties.list({ page_size: 50 }),
@@ -24,10 +35,18 @@ export default function AdminDashboardPage() {
   });
 
   const cards = [
-    { label: "Total Properties", value: properties?.total ?? 0, icon: Building2 },
-    { label: "Verified Agents", value: agents?.filter((a) => a.verified).length ?? 0, icon: ShieldCheck },
-    { label: "Registered Users", value: "—", icon: Users },
-    { label: "Active Conversations", value: "—", icon: MessageCircle },
+    { label: "Registered Users", value: stats?.total_users ?? "—", icon: Users },
+    { label: "Approved Agents", value: stats?.approved_agents ?? "—", icon: Award },
+    { label: "Verified Properties", value: stats?.verified_properties ?? "—", icon: ShieldCheck },
+    { label: "Pending Verifications", value: stats?.pending_verifications ?? "—", icon: ClipboardCheck },
+    { label: "Pending Agent Applications", value: stats?.pending_agent_apps ?? "—", icon: Building2 },
+    { label: "Properties Awaiting Review", value: stats?.pending_property_review ?? "—", icon: ClipboardCheck },
+    { label: "Upcoming Bookings", value: stats?.upcoming_bookings ?? "—", icon: Building2 },
+    {
+      label: "Total Revenue",
+      value: stats ? formatPrice(stats.total_revenue, "NGN") : "—",
+      icon: Wallet,
+    },
   ];
 
   return (
@@ -91,6 +110,7 @@ export default function AdminDashboardPage() {
               <tr className="border-b border-white/10 text-white/40">
                 <th className="pb-3 font-medium">Name</th>
                 <th className="pb-3 font-medium">Agency</th>
+                <th className="pb-3 font-medium">Agent ID</th>
                 <th className="pb-3 font-medium">Rating</th>
                 <th className="pb-3 font-medium">Verification</th>
               </tr>
@@ -104,6 +124,7 @@ export default function AdminDashboardPage() {
                 >
                   <td className="py-3 pr-4">{agent.user?.name}</td>
                   <td className="py-3 pr-4">{agent.agency_name}</td>
+                  <td className="py-3 pr-4">{agent.agent_number ?? "—"}</td>
                   <td className="py-3 pr-4">{agent.rating.toFixed(1)}</td>
                   <td className="py-3 capitalize">{agent.verification_level.replace("_", " ")}</td>
                 </motion.tr>

@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Award,
+  BadgeCheck,
   Building2,
   CalendarCheck,
   Heart,
@@ -14,12 +16,15 @@ import {
 import { useAuthStore } from "@/lib/store";
 import { ThemeToggle } from "./theme-toggle";
 import { MotionLink } from "./motion-link";
+import { NotificationBell } from "./notification-bell";
 
 const LINKS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/bookings", label: "My Viewings", icon: CalendarCheck },
   { href: "/dashboard/saved", label: "Saved Properties", icon: Heart },
   { href: "/dashboard/messages", label: "Messages", icon: MessageCircle },
+  { href: "/dashboard/verify", label: "Identity Verification", icon: BadgeCheck },
+  { href: "/dashboard/agent-application", label: "Agent Approval", icon: Award, agentOnly: true },
   { href: "/dashboard/properties", label: "My Listings", icon: Building2, agentOnly: true },
 ];
 
@@ -82,6 +87,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <header className="flex h-16 items-center justify-between border-b border-white/10 px-6">
           <p className="text-sm text-white/50 capitalize">{user?.role ?? "Guest"} Dashboard</p>
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <ThemeToggle />
             <div className="flex items-center gap-2 text-sm text-white">
               <User size={16} /> {user?.name ?? "Guest"}

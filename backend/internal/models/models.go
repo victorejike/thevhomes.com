@@ -77,7 +77,14 @@ type User struct {
 	GoogleID      *string `gorm:"uniqueIndex" json:"-"`
 	EmailVerified bool    `gorm:"default:false" json:"email_verified"`
 
-	Agent *Agent `json:"agent,omitempty"`
+	// NINVerified/IdentityVerifiedAt reflect the outcome of the VerifyMe NIN
+	// check every user must complete for full platform access.
+	NINVerified        bool       `gorm:"default:false" json:"nin_verified"`
+	IdentityVerifiedAt *time.Time `json:"identity_verified_at,omitempty"`
+
+	Agent                *Agent                `json:"agent,omitempty"`
+	IdentityVerification *IdentityVerification `json:"identity_verification,omitempty"`
+	GoogleAccount        *GoogleAccount        `json:"-"`
 }
 
 // Agent extends a User with real-estate agent profile data.
@@ -93,7 +100,23 @@ type Agent struct {
 	Rating            float64            `gorm:"default:0" json:"rating"`
 	ReviewsCount      int                `gorm:"default:0" json:"reviews_count"`
 
+	// Secure onboarding: an agent must pass personal identity verification
+	// AND have their business application approved before AgentNumber is
+	// assigned. Only agents with a non-nil AgentNumber may publish listings
+	// (enforced in property_handler.go).
+	IdentityVerified      bool                `gorm:"default:false" json:"identity_verified"`
+	ApprovalStatus        AgentApprovalStatus `gorm:"type:varchar(20);default:'not_applied'" json:"approval_status"`
+	AgentNumber           *string             `gorm:"uniqueIndex" json:"agent_number,omitempty"`
+	AgentNumberAssignedAt *time.Time          `json:"agent_number_assigned_at,omitempty"`
+
 	Properties []Property `json:"properties,omitempty"`
+}
+
+// CanPublishListings reports whether the agent has cleared every gate
+// required to publish a property: identity verification, an approved
+// business application, and a permanently-assigned agent number.
+func (a Agent) CanPublishListings() bool {
+	return a.IdentityVerified && a.ApprovalStatus == AgentApprovalApproved && a.AgentNumber != nil
 }
 
 // Property is a single real-estate listing.
@@ -124,11 +147,26 @@ type Property struct {
 	VerificationStatus VerificationStatus `gorm:"type:varchar(20);default:'pending'" json:"verification_status"`
 	Available          bool               `gorm:"default:true" json:"available"`
 
+	// CoverImageURL is the single hero/cover photo required by the listing
+	// validation rules (kept in sync with the primary PropertyImage).
+	CoverImageURL string `json:"cover_image_url"`
+
+	// ListingStatus is the admin review workflow state (draft -> pending_review
+	// -> under_inspection -> verified/rejected). Only "verified" listings are
+	// publicly searchable. A listing cannot leave "draft" until it has a
+	// PropertyTour in TourReady status.
+	ListingStatus ListingStatus `gorm:"type:varchar(20);default:'draft'" json:"listing_status"`
+
+	// Paid viewing service.
+	IsPaidViewing bool    `gorm:"default:false" json:"is_paid_viewing"`
+	ViewingFee    float64 `gorm:"default:0" json:"viewing_fee"`
+
 	AgentID uuid.UUID `gorm:"type:uuid" json:"agent_id"`
 	Agent   Agent     `json:"agent,omitempty"`
 
 	Images  []PropertyImage `json:"images,omitempty"`
 	Reviews []Review        `json:"reviews,omitempty"`
+	Tour    *PropertyTour   `json:"tour,omitempty"`
 }
 
 // PropertyImage stores gallery images for a property (typically Cloudflare R2 URLs).
@@ -161,6 +199,14 @@ type Booking struct {
 	ScheduledDate time.Time     `json:"scheduled_date"`
 	Status        BookingStatus `gorm:"type:varchar(20);default:'pending'" json:"status"`
 	Notes         string        `json:"notes"`
+
+	// Professional Property Viewing Service fields.
+	ViewingType     ViewingType    `gorm:"type:varchar(20);default:'physical'" json:"viewing_type"`
+	PaymentRequired bool           `gorm:"default:false" json:"payment_required"`
+	ViewingFee      float64        `gorm:"default:0" json:"viewing_fee"`
+	PaymentID       *uuid.UUID     `gorm:"type:uuid" json:"payment_id,omitempty"`
+	Payment         *Payment       `json:"payment,omitempty"`
+	Ticket          *ViewingTicket `json:"ticket,omitempty"`
 }
 
 // Conversation groups messages between two participants.
@@ -206,14 +252,18 @@ const (
 // Payment records a Paystack/Flutterwave transaction.
 type Payment struct {
 	BaseModel
-	UserID     uuid.UUID     `gorm:"type:uuid;index" json:"user_id"`
-	PropertyID *uuid.UUID    `gorm:"type:uuid" json:"property_id,omitempty"`
-	Amount     float64       `json:"amount"`
-	Currency   string        `gorm:"default:'NGN'" json:"currency"`
-	Purpose    string        `json:"purpose"`  // booking_fee | reservation | consultation | shortlet_booking
-	Provider   string        `json:"provider"` // paystack | flutterwave
-	Reference  string        `gorm:"uniqueIndex" json:"reference"`
-	Status     PaymentStatus `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	UserID            uuid.UUID     `gorm:"type:uuid;index" json:"user_id"`
+	PropertyID        *uuid.UUID    `gorm:"type:uuid" json:"property_id,omitempty"`
+	BookingID         *uuid.UUID    `gorm:"type:uuid;index" json:"booking_id,omitempty"`
+	Amount            float64       `json:"amount"`
+	Currency          string        `gorm:"default:'NGN'" json:"currency"`
+	Purpose           string        `json:"purpose"`  // booking_fee | reservation | consultation | shortlet_booking | viewing_fee
+	Provider          string        `json:"provider"` // paystack | flutterwave
+	Reference         string        `gorm:"uniqueIndex" json:"reference"`
+	ProviderReference string        `json:"provider_reference,omitempty"`
+	Status            PaymentStatus `gorm:"type:varchar(20);default:'pending'" json:"status"`
+	RefundStatus      string        `gorm:"type:varchar(20);default:'none'" json:"refund_status"` // none | requested | approved | rejected | refunded
+	RefundReason      string        `json:"refund_reason,omitempty"`
 }
 
 // Investment is a real-estate development opportunity offered to customers.

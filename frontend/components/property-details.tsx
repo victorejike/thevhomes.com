@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentType } from "react";
+import { useMemo, useState, type ComponentType } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -17,6 +17,8 @@ import {
   Star,
   Waves,
 } from "lucide-react";
+import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
+import type { LucideIcon } from "lucide-react";
 import type { Property } from "@/lib/types";
 import { formatPrice, propertyTypeLabel, purposeLabel } from "@/lib/format";
 import { VerificationBadge } from "./badge";
@@ -35,6 +37,13 @@ export function PropertyDetails({ property }: { property: Property }) {
   const { isSaved, toggleSaved } = useSavedPropertiesStore();
   const { user } = useAuthStore();
   const router = useRouter();
+  const mapCenter = useMemo(
+    () => ({ lat: property.latitude, lng: property.longitude }),
+    [property.latitude, property.longitude]
+  );
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "",
+  });
 
   const agentName = property.agent?.user?.name ?? "TheVHomes Agent";
 
@@ -174,10 +183,37 @@ export function PropertyDetails({ property }: { property: Property }) {
 
           <div>
             <h2 className="font-display text-xl font-semibold text-white">Location</h2>
-            <div className="mt-4 flex h-72 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.02] text-sm text-white/40">
-              {/* Swap for a real Google Map using property.latitude / property.longitude
-                 once NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is configured. */}
-              Map preview — {property.latitude.toFixed(4)}, {property.longitude.toFixed(4)}
+            <div className="mt-4 h-72 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] text-sm text-white/40">
+              {process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? (
+                isLoaded ? (
+                  <GoogleMap
+                    mapContainerClassName="h-full w-full"
+                    center={mapCenter}
+                    zoom={15}
+                    options={{
+                      streetViewControl: false,
+                      mapTypeControl: false,
+                      fullscreenControl: false,
+                      zoomControl: true,
+                    }}
+                  >
+                    <MarkerF position={mapCenter} />
+                  </GoogleMap>
+                ) : (
+                  <div className="flex h-full items-center justify-center px-4 text-center">
+                    <p className="font-medium text-white/70">Loading map…</p>
+                  </div>
+                )
+              ) : (
+                <div className="flex h-full items-center justify-center px-4 text-center">
+                  <div>
+                    <p className="font-medium text-white">Map preview unavailable.</p>
+                    <p className="mt-2 text-xs text-white/50">
+                      Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to show the live location map.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -254,7 +290,7 @@ function Stat({
   label,
   value,
 }: {
-  icon: ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   label: string;
   value: string | number;
 }) {

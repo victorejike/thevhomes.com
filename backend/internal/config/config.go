@@ -28,8 +28,30 @@ type Config struct {
 	SMTPPort             string
 	SMTPUser             string
 	SMTPPassword         string
+	SMTPFrom             string
 	GoogleMapsAPIKey     string
 	OpenAIAPIKey         string
+
+	// Google OAuth 2.0 ("Continue with Google" / "Sign in with Google").
+	GoogleOAuthClientID     string
+	GoogleOAuthClientSecret string
+	GoogleOAuthRedirectURL  string
+
+	// VerifyMe (Nigerian NIN identity verification).
+	VerifyMeAPIKey  string
+	VerifyMeBaseURL string
+
+	// AES-256-GCM key (32 raw bytes, base64) used to encrypt NIN and other
+	// sensitive PII at rest. Generate with: openssl rand -base64 32
+	EncryptionKey string
+
+	// Agent ID numbering, e.g. "TVH-AGT" -> TVH-AGT-000001.
+	AgentNumberPrefix string
+
+	// QR code generation for viewing tickets. Defaults to a public QR image
+	// API; self-host a QR generator for production if you'd rather not
+	// depend on a third party for ticket QR rendering.
+	QRCodeServiceBaseURL string
 }
 
 // Load reads a .env file (if present) and environment variables into a Config struct.
@@ -60,8 +82,22 @@ func Load() *Config {
 		SMTPPort:             getEnv("SMTP_PORT", "587"),
 		SMTPUser:             getEnv("SMTP_USER", ""),
 		SMTPPassword:         getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:             getEnv("SMTP_FROM", "TheVHomes <no-reply@thevhomes.com>"),
 		GoogleMapsAPIKey:     getEnv("GOOGLE_MAPS_API_KEY", ""),
 		OpenAIAPIKey:         getEnv("OPENAI_API_KEY", ""),
+
+		GoogleOAuthClientID:     getEnv("GOOGLE_OAUTH_CLIENT_ID", ""),
+		GoogleOAuthClientSecret: getEnv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+		GoogleOAuthRedirectURL:  getEnv("GOOGLE_OAUTH_REDIRECT_URL", ""),
+
+		VerifyMeAPIKey:  getEnv("VERIFYME_API_KEY", ""),
+		VerifyMeBaseURL: getEnv("VERIFYME_BASE_URL", "https://vapi.verifyme.ng/v1"),
+
+		EncryptionKey: getEnv("ENCRYPTION_KEY", ""),
+
+		AgentNumberPrefix: getEnv("AGENT_NUMBER_PREFIX", "TVH-AGT"),
+
+		QRCodeServiceBaseURL: getEnv("QR_CODE_SERVICE_BASE_URL", "https://api.qrserver.com/v1/create-qr-code/"),
 	}
 }
 

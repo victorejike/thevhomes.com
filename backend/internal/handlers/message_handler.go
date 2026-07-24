@@ -31,11 +31,13 @@ var upgrader = websocket.Upgrader{
 }
 
 type inboundChatEvent struct {
-	Type           string `json:"type"` // message | typing | read_receipt
-	ConversationID string `json:"conversation_id"`
-	RecipientID    string `json:"recipient_id"`
-	Content        string `json:"content"`
-	AttachmentURL  string `json:"attachment_url"`
+	Type           string          `json:"type"` // message | typing | read_receipt | webrtc_offer | webrtc_answer | webrtc_ice_candidate | webrtc_hangup
+	ConversationID string          `json:"conversation_id"`
+	RecipientID    string          `json:"recipient_id"`
+	Content        string          `json:"content"`
+	AttachmentURL  string          `json:"attachment_url"`
+	SessionToken   string          `json:"session_token"` // live viewing session this signal belongs to
+	Signal         json.RawMessage `json:"signal"`        // opaque SDP/ICE payload, relayed as-is
 }
 
 // HandleWebSocket upgrades GET /api/v1/ws/chat to a WebSocket connection.
@@ -81,6 +83,19 @@ func (h *MessageHandler) stream(c *gin.Context, userID uuid.UUID) {
 			h.DB.Model(&models.Message{}).
 				Where("conversation_id = ? AND sender_id != ?", event.ConversationID, userID).
 				Update("read_at", gorm.Expr("NOW()"))
+
+		// Live video property tour (WebRTC) signaling: TheVHomes never inspects
+		// or stores SDP/ICE payloads — they're relayed byte-for-byte between the
+		// customer and agent so the two browsers can negotiate a direct
+		// peer-to-peer HD video connection.
+		case "webrtc_offer", "webrtc_answer", "webrtc_ice_candidate", "webrtc_hangup":
+			if recipientID, err := uuid.Parse(event.RecipientID); err == nil {
+				h.Hub.SendToUser(recipientID, ws.OutboundEvent{Type: event.Type, Payload: map[string]interface{}{
+					"session_token": event.SessionToken,
+					"from_user_id":  userID.String(),
+					"signal":        event.Signal,
+				}})
+			}
 		}
 	})
 }

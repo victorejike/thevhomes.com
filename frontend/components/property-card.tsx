@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { BedDouble, Bath, Heart, Maximize, MapPin } from "lucide-react";
+import { BedDouble, Bath, Heart, Maximize, MapPin, View } from "lucide-react";
 import type { Property } from "@/lib/types";
 import { formatPrice, propertyTypeLabel, purposeLabel } from "@/lib/format";
-import { VerificationBadge } from "./badge";
+import { VerificationBadge, VerifiedPropertyBadge } from "./badge";
 import { useSavedPropertiesStore } from "@/lib/store";
 
 const FALLBACK_IMAGE =
@@ -81,9 +81,15 @@ export function PropertyCard({ property, index = 0 }: { property: Property; inde
 
           <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
             <VerificationBadge status={property.verification_status} />
+            {property.listing_status === "verified" && <VerifiedPropertyBadge />}
             <span className="rounded-full bg-charcoal-950/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
               {purposeLabel(property.purpose)}
             </span>
+            {property.tour?.status === "ready" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-charcoal-950/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur">
+                <View size={12} /> 3D Tour
+              </span>
+            )}
           </div>
 
           <motion.button
