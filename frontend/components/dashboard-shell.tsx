@@ -35,7 +35,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-charcoal-950">
-      <aside className="relative hidden w-64 shrink-0 border-r border-white/10 bg-charcoal-900/40 lg:block">
+      <aside className="relative hidden w-64 shrink-0 border-r border-white/10 bg-charcoal-900/40 md:block">
         <div className="p-6">
           <MotionLink
             href="/"
@@ -83,18 +83,18 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1">
-        <header className="flex h-16 items-center justify-between border-b border-white/10 px-6">
+      <div className="flex-1 min-w-0">
+        <header className="flex h-16 items-center justify-between border-b border-white/10 px-4 md:px-6">
           <p className="text-sm text-white/50 capitalize">{user?.role ?? "Guest"} Dashboard</p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <NotificationBell />
             <ThemeToggle />
-            <div className="flex items-center gap-2 text-sm text-white">
+            <div className="hidden items-center gap-2 text-sm text-white sm:flex">
               <User size={16} /> {user?.name ?? "Guest"}
             </div>
           </div>
         </header>
-        <main className="p-6 lg:p-10">{children}</main>
+        <main className="p-4 md:p-6 lg:p-10">{children}</main>
       </div>
     </div>
   );

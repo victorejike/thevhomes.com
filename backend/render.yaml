@@ -46,6 +46,24 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: GOOGLE_OAUTH_CLIENT_ID
+        sync: false
+      - key: GOOGLE_OAUTH_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URL
+        sync: false
+      - key: VERIFYME_API_KEY
+        sync: false
+      - key: VERIFYME_BASE_URL
+        value: https://vapi.verifyme.ng/v1
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: AGENT_NUMBER_PREFIX
+        value: TVH-AGT
+      - key: QR_CODE_SERVICE_BASE_URL
+        value: https://api.qrserver.com/v1/create-qr-code/
+      - key: SMTP_FROM
+        value: TheVHomes <no-reply@thevhomes.com>
 
 databases:
   - name: thevhomes-db

@@ -111,7 +111,7 @@ func (h *AIHandler) parseIntentWithLLM(ctx context.Context, message string) (par
 			{
 				Name:        "parse_property_search",
 				Description: "Extract search filters for property listings.",
-				Parameters: openai.FunctionParameters{
+				Parameters: openai.FunctionParameter{
 					Type: "object",
 					Properties: map[string]openai.FunctionProperty{
 						"city": {

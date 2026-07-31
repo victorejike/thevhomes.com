@@ -1,12 +1,14 @@
 [build]
+  base = "frontend"
   command = "npm run build"
-  publish = ".next"
+  publish = "."
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [build.environment]
   NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # Set these in the Netlify UI (Site configuration > Environment variables)
 # instead of committing real values here:

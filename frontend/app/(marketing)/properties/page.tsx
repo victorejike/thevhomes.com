@@ -192,14 +192,14 @@ function PropertiesPageInner() {
           onClick={() => setMobileFiltersOpen(true)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex items-center gap-2 self-start rounded-full border border-white/15 px-4 py-2 text-sm text-white lg:hidden"
+          className="flex items-center gap-2 self-start rounded-full border border-white/15 px-4 py-2 text-sm text-white md:hidden"
         >
           <SlidersHorizontal size={15} /> Filters
         </motion.button>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
-        <aside className="hidden lg:block">
+      <div className="mt-10 grid grid-cols-1 gap-10 md:grid-cols-[260px_1fr] lg:grid-cols-[280px_1fr]">
+        <aside className="hidden md:block">
           <div className="sticky top-28 rounded-2xl border border-white/10 bg-white/[0.02] p-6">
             {FilterPanel}
           </div>

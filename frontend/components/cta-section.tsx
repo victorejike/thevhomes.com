@@ -44,8 +44,8 @@ export function CtaSection() {
           <div className="absolute inset-0 bg-gradient-to-br from-charcoal-950/90 via-charcoal-950/80 to-black/90" />
         </div>
 
-        <div className="relative px-8 py-16 text-center sm:px-16">
-          <h2 className="font-display text-3xl font-semibold text-white sm:text-4xl">
+        <div className="relative px-6 py-12 text-center sm:px-16 sm:py-16">
+          <h2 className="font-display text-2xl font-semibold text-white sm:text-3xl lg:text-4xl">
             Ready to Find Your Perfect Property?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-white/70">

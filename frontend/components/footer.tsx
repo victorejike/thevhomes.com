@@ -37,7 +37,7 @@ const columns = [
 export function Footer() {
   return (
     <footer className="border-t border-white/10 bg-charcoal-950 text-white/70">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-16 lg:grid-cols-5 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-6 py-16 sm:grid-cols-2 lg:grid-cols-5 lg:px-8">
         <div className="lg:col-span-2">
           <span className="font-display text-2xl font-semibold text-white">
             THE<span className="text-teal-400">V</span>HOMES

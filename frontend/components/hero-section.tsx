@@ -50,12 +50,12 @@ export function HeroSection() {
         <div className="absolute inset-0 backdrop-blur-[1px]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-6 text-center">
+      <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-4 text-center sm:px-6">
         <motion.span
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-5 rounded-full border border-teal-400/40 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.3em] text-teal-300 backdrop-blur"
+          className="mb-4 rounded-full border border-teal-400/40 bg-white/5 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.25em] text-teal-300 backdrop-blur sm:mb-5 sm:text-xs sm:tracking-[0.3em]"
         >
           {t(locale, "hero_kicker")}
         </motion.span>
@@ -64,7 +64,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="font-display text-4xl font-semibold leading-[1.1] text-white sm:text-6xl lg:text-7xl"
+          className="font-display text-3xl font-semibold leading-[1.1] text-white sm:text-5xl lg:text-7xl"
         >
           {t(locale, "hero_title_1")}{" "}
           <span className="bg-teal-gradient bg-clip-text text-transparent">
@@ -76,7 +76,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="mt-6 max-w-2xl text-balance text-lg text-white/80 sm:text-xl"
+          className="mt-5 max-w-xl text-balance text-base text-white/80 sm:mt-6 sm:text-lg md:text-xl"
         >
           {t(locale, "hero_subtitle")}
         </motion.p>
@@ -85,7 +85,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3 }}
-          className="mt-10 flex flex-col gap-4 sm:flex-row"
+          className="mt-8 flex w-full flex-col gap-3 sm:mt-10 sm:flex-row sm:justify-center"
         >
           <MotionLink
             href="/properties"

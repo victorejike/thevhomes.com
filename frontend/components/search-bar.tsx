@@ -41,6 +41,7 @@ export function SearchBar() {
       <select
         value={city}
         onChange={(e) => setCity(e.target.value)}
+        aria-label="Location"
         className="rounded-full border border-white/10 bg-charcoal-900/80 px-4 py-2.5 text-sm text-white focus:outline-none sm:border-0 sm:bg-transparent"
       >
         <option value="">All Locations</option>
@@ -54,6 +55,7 @@ export function SearchBar() {
       <select
         value={propertyType}
         onChange={(e) => setPropertyType(e.target.value)}
+        aria-label="Property type"
         className="rounded-full border border-white/10 bg-charcoal-900/80 px-4 py-2.5 text-sm text-white focus:outline-none sm:border-0 sm:bg-transparent"
       >
         <option value="">Any Type</option>
@@ -69,6 +71,7 @@ export function SearchBar() {
       <select
         value={purpose}
         onChange={(e) => setPurpose(e.target.value)}
+        aria-label="Purpose"
         className="rounded-full border border-white/10 bg-charcoal-900/80 px-4 py-2.5 text-sm text-white focus:outline-none sm:border-0 sm:bg-transparent"
       >
         <option value="">Any Purpose</option>

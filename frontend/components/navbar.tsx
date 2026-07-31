@@ -44,7 +44,7 @@ export function Navbar() {
           </span>
         </MotionLink>
 
-        <div className="hidden items-center gap-8 lg:flex">
+        <div className="hidden items-center gap-6 md:flex">
           {LINKS.map((link) => (
             <MotionLink
               key={link.href}
@@ -58,7 +58,7 @@ export function Navbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-3 md:flex">
           <LanguageSwitcher />
           <ThemeToggle />
           <MotionLink
@@ -80,7 +80,7 @@ export function Navbar() {
 
         <motion.button
           {...tapScaleSmall}
-          className="text-white lg:hidden"
+          className="text-white md:hidden"
           onClick={() => setMobileOpen((v) => !v)}
           aria-label="Toggle menu"
         >
@@ -93,7 +93,7 @@ export function Navbar() {
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
-          className="border-t border-white/10 bg-charcoal-950/95 px-6 py-6 backdrop-blur-xl lg:hidden"
+          className="border-t border-white/10 bg-charcoal-950/95 px-4 py-5 backdrop-blur-xl md:hidden"
         >
           <div className="flex flex-col gap-4">
             {LINKS.map((link) => (
