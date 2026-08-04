@@ -111,36 +111,36 @@ func (h *AIHandler) parseIntentWithLLM(ctx context.Context, message string) (par
 			{
 				Name:        "parse_property_search",
 				Description: "Extract search filters for property listings.",
-				Parameters: openai.FunctionParameter{
-					Type: "object",
-					Properties: map[string]openai.FunctionProperty{
-						"city": {
-							Type:        "string",
-							Description: "The city or location to search in.",
+				Parameters: map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"city": map[string]any{
+							"type":        "string",
+							"description": "The city or location to search in.",
 						},
-						"property_type": {
-							Type:        "string",
-							Description: "The property type, such as apartment, villa, or shortlet.",
-							Enum: []any{"apartment", "villa", "duplex", "land", "office", "hotel", "shortlet"},
+						"property_type": map[string]any{
+							"type":        "string",
+							"description": "The property type, such as apartment, villa, or shortlet.",
+							"enum":        []any{"apartment", "villa", "duplex", "land", "office", "hotel", "shortlet"},
 						},
-						"purpose": {
-							Type:        "string",
-							Description: "The search purpose, such as buy, rent, invest, or shortlet.",
-							Enum: []any{"buy", "rent", "invest", "shortlet"},
+						"purpose": map[string]any{
+							"type":        "string",
+							"description": "The search purpose, such as buy, rent, invest, or shortlet.",
+							"enum":        []any{"buy", "rent", "invest", "shortlet"},
 						},
-						"min_bedrooms": {
-							Type:        "integer",
-							Description: "The minimum number of bedrooms.",
+						"min_bedrooms": map[string]any{
+							"type":        "integer",
+							"description": "The minimum number of bedrooms.",
 						},
-						"max_price": {
-							Type:        "number",
-							Description: "The maximum price in Nigerian Naira.",
+						"max_price": map[string]any{
+							"type":        "number",
+							"description": "The maximum price in Nigerian Naira.",
 						},
 					},
 				},
 			},
 		},
-		FunctionCall: openai.FunctionCall{Type: "auto"},
+		FunctionCall: "auto",
 		Temperature:  0,
 	})
 	if err != nil {
