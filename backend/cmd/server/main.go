@@ -16,11 +16,6 @@ import (
 func main() {
 	cfg := config.Load()
 
-	db, err := database.Connect(cfg.DatabaseURL)
-	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
-	}
-
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -30,7 +25,14 @@ func main() {
 
 	hub := websocket.NewHub()
 	c := cache.New(cfg.RedisURL)
-	routes.Setup(router, db, cfg, hub, c)
+
+	db, err := database.Connect(cfg.DatabaseURL)
+	if err != nil {
+		log.Printf("warning: database unavailable, continuing with limited startup: %v", err)
+		routes.Setup(router, nil, cfg, hub, c)
+	} else {
+		routes.Setup(router, db, cfg, hub, c)
+	}
 
 	log.Printf("thevhomes-api listening on :%s (%s)", cfg.Port, cfg.Env)
 	if err := router.Run(":" + cfg.Port); err != nil {
