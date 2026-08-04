@@ -20,7 +20,7 @@ import type {
 import { MOCK_AGENTS, MOCK_INVESTMENTS, MOCK_PROPERTIES } from "./mock-data";
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/api/v1";
+  process.env.NEXT_PUBLIC_API_URL ?? "https://thevhomes-com.onrender.com/api/v1";
 
 class ApiError extends Error {
   status: number;
