@@ -2,6 +2,8 @@ package database
 
 import (
 	"log"
+	"net/url"
+	"strings"
 
 	"github.com/thevhomes/backend/internal/models"
 	"gorm.io/driver/postgres"
@@ -12,7 +14,8 @@ import (
 // Connect opens a PostgreSQL connection via GORM and runs auto-migrations
 // for every domain model. Called once at startup from cmd/server/main.go.
 func Connect(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	normalizedDSN := normalizeDatabaseURL(dsn)
+	db, err := gorm.Open(postgres.Open(normalizedDSN), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
@@ -25,6 +28,25 @@ func Connect(dsn string) (*gorm.DB, error) {
 
 	log.Println("database connected and migrated")
 	return db, nil
+}
+
+func normalizeDatabaseURL(dsn string) string {
+	if strings.TrimSpace(dsn) == "" {
+		return dsn
+	}
+
+	parsed, err := url.Parse(dsn)
+	if err != nil || parsed.Scheme == "" {
+		return dsn
+	}
+
+	query := parsed.Query()
+	if _, ok := query["sslmode"]; !ok {
+		query.Set("sslmode", "require")
+		parsed.RawQuery = query.Encode()
+	}
+
+	return parsed.String()
 }
 
 func migrate(db *gorm.DB) error {
