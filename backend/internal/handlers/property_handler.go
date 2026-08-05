@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/thevhomes/backend/internal/ai"
 	"github.com/thevhomes/backend/internal/cache"
 	"github.com/thevhomes/backend/internal/models"
 	"github.com/thevhomes/backend/internal/utils"
@@ -21,10 +22,11 @@ const propertyCacheKeyPrefix = "properties:list:"
 type PropertyHandler struct {
 	DB    *gorm.DB
 	Cache *cache.Cache
+	AI    *ai.Engine
 }
 
 func NewPropertyHandler(db *gorm.DB, c *cache.Cache) *PropertyHandler {
-	return &PropertyHandler{DB: db, Cache: c}
+	return &PropertyHandler{DB: db, Cache: c, AI: ai.NewEngine()}
 }
 
 // List handles GET /api/v1/properties with rich filtering, used by both the
@@ -209,6 +211,20 @@ type propertyRequest struct {
 	CoverImageURL  string   `json:"cover_image_url"`
 	IsPaidViewing  bool     `json:"is_paid_viewing"`
 	ViewingFee     float64  `json:"viewing_fee"`
+
+	// Phase 4 structured publishing fields.
+	Negotiable    bool    `json:"negotiable"`
+	State         string  `json:"state"`
+	Area          string  `json:"area"`
+	Toilets       int     `json:"toilets"`
+	ParkingSpaces int     `json:"parking_spaces"`
+	LandSize      float64 `json:"land_size"`
+	BuildingSize  float64 `json:"building_size"`
+	YearBuilt     int     `json:"year_built"`
+
+	// YoutubeURL is the full link the agent pastes; only the extracted video
+	// ID is persisted (see utils.ExtractYouTubeID).
+	YoutubeURL string `json:"youtube_url"`
 }
 
 // Create handles POST /api/v1/properties (agent/admin only).
@@ -238,6 +254,26 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 		return
 	}
 
+	// Phase 4: duplicate images within the same listing are rejected outright
+	// so an agent can't pad a gallery with the same photo repeated.
+	if dupe := firstDuplicateImage(req.ImageURLs); dupe != "" {
+		utils.Error(c, http.StatusBadRequest, "duplicate image detected in this listing: "+dupe)
+		return
+	}
+
+	// Phase 4: videos live on YouTube, never on TheVHomes servers. Store only
+	// the extracted video ID so the property page can embed it via
+	// youtube-nocookie.com instead of redirecting users off-site.
+	var youtubeID string
+	if req.YoutubeURL != "" {
+		id, err := utils.ExtractYouTubeID(req.YoutubeURL)
+		if err != nil {
+			utils.Error(c, http.StatusBadRequest, "invalid YouTube URL — paste a link such as https://www.youtube.com/watch?v=... or https://youtu.be/...")
+			return
+		}
+		youtubeID = id
+	}
+
 	if req.Currency == "" {
 		req.Currency = "NGN"
 	}
@@ -256,8 +292,11 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 		Description:    req.Description,
 		Price:          req.Price,
 		Currency:       req.Currency,
+		Negotiable:     req.Negotiable,
 		Address:        req.Address,
 		City:           req.City,
+		State:          req.State,
+		Area:           req.Area,
 		Country:        req.Country,
 		Latitude:       req.Latitude,
 		Longitude:      req.Longitude,
@@ -265,7 +304,12 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 		Purpose:        models.Purpose(req.Purpose),
 		Bedrooms:       req.Bedrooms,
 		Bathrooms:      req.Bathrooms,
+		Toilets:        req.Toilets,
+		ParkingSpaces:  req.ParkingSpaces,
 		SquareMeters:   req.SquareMeters,
+		LandSize:       req.LandSize,
+		BuildingSize:   req.BuildingSize,
+		YearBuilt:      req.YearBuilt,
 		Furnished:      req.Furnished,
 		Parking:        req.Parking,
 		Security:       req.Security,
@@ -273,6 +317,7 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 		Amenities:      models.StringArray(req.Amenities),
 		VideoURLs:      models.StringArray(req.VideoURLs),
 		VirtualTourURL: req.VirtualTourURL,
+		YoutubeVideoID: youtubeID,
 		CoverImageURL:  coverImage,
 		ListingStatus:  models.ListingDraft,
 		IsPaidViewing:  req.IsPaidViewing,
@@ -288,13 +333,33 @@ func (h *PropertyHandler) Create(c *gin.Context) {
 
 	for i, url := range req.ImageURLs {
 		img := models.PropertyImage{PropertyID: property.ID, URL: url, IsPrimary: i == 0}
+		// Compute perceptual hash for duplicate detection. Best-effort: a fetch
+		// or decode failure never blocks the listing; it just means that image
+		// isn't checked against the duplicate registry.
+		if hash, err := utils.DHashURL(url); err == nil {
+			img.PerceptualHash = utils.FormatDHash(hash)
+		}
 		h.DB.Create(&img)
+		property.Images = append(property.Images, img)
 	}
 
 	// Every listing starts with a not_started 3D tour placeholder; the agent
 	// must bring this to TourReady (see tour_handler.go) before the listing
 	// can be submitted for admin review (see property_review_handler.go).
 	h.DB.Create(&models.PropertyTour{PropertyID: property.ID, Status: models.TourNotStarted})
+
+	// TheVHomes AI Engine scores the finished listing: a 0-100 completeness
+	// score the agent sees as "Listing Quality", and a moderation score that
+	// routes suspect copy to admin review. Run after images are attached so
+	// the media portion of the score is accurate. Scoring never blocks or
+	// hides a listing — see internal/ai/moderation.go.
+	if err := h.AI.EvaluateListing(c.Request.Context(), &property); err == nil {
+		h.DB.Model(&property).Updates(map[string]interface{}{
+			"completeness_score": property.CompletenessScore,
+			"moderation_score":   property.ModerationScore,
+			"moderation_status":  property.ModerationStatus,
+		})
+	}
 
 	h.Cache.InvalidatePrefix(c.Request.Context(), propertyCacheKeyPrefix)
 	utils.Success(c, http.StatusCreated, "property created as a draft — add photos and a 3D tour, then submit for review", property)
@@ -392,4 +457,27 @@ func slugify(title string) string {
 	replacer := strings.NewReplacer(" ", "-", "/", "-", ",", "", ".", "")
 	s = replacer.Replace(s)
 	return fmt.Sprintf("%s-%d", s, time.Now().Unix())
+}
+
+// firstDuplicateImage returns the first URL that appears more than once in
+// urls, or "" when every image is distinct. Phase 4 requires that no uploaded
+// image be identical to another within the same listing.
+//
+// Comparison is on the normalised URL, which catches the common case of the
+// same uploaded asset being added twice. Perceptual/pixel-level duplicate
+// detection for visually-identical-but-separately-uploaded files is handled by
+// the image-hash check in the upload pipeline (see upload_handler.go).
+func firstDuplicateImage(urls []string) string {
+	seen := make(map[string]struct{}, len(urls))
+	for _, u := range urls {
+		key := strings.ToLower(strings.TrimSpace(u))
+		if key == "" {
+			continue
+		}
+		if _, dup := seen[key]; dup {
+			return u
+		}
+		seen[key] = struct{}{}
+	}
+	return ""
 }

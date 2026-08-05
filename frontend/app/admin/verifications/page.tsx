@@ -62,12 +62,12 @@ export default function AdminVerificationsPage() {
                 {v.failure_reason && <p className="mt-1 text-xs text-red-400">{v.failure_reason}</p>}
               </div>
               {tab === "pending" || tab === "failed" ? (
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   <input
                     placeholder="Notes (optional)"
                     value={notes[v.id] ?? ""}
                     onChange={(e) => setNotes((n) => ({ ...n, [v.id]: e.target.value }))}
-                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white"
+                    className="w-full min-w-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white sm:w-auto"
                   />
                   <button
                     onClick={() => reviewMutation.mutate({ id: v.id, status: "verified" })}

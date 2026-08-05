@@ -8,7 +8,7 @@ import { CITIES } from "@/lib/mock-data";
 import { useLocaleStore } from "@/lib/store";
 import { t } from "@/lib/i18n";
 
-export function SearchBar() {
+export function SearchBar({ placeholderOverride }: { placeholderOverride?: string } = {}) {
   const router = useRouter();
   const { locale } = useLocaleStore();
   const [city, setCity] = useState("");
@@ -33,7 +33,7 @@ export function SearchBar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          placeholder={t(locale, "search_placeholder")}
+          placeholder={placeholderOverride ?? t(locale, "search_placeholder")}
           className="w-full bg-transparent text-sm text-white placeholder:text-white/50 focus:outline-none"
         />
       </div>

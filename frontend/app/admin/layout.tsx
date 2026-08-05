@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { MotionLink, tapScale } from "@/components/motion-link";
+import { AnimatedLogo } from "@/components/animated-logo";
 
 const NAV = [
   { href: "/admin", label: "Overview" },
@@ -12,6 +13,8 @@ const NAV = [
   { href: "/admin/properties", label: "Property Review" },
   { href: "/admin/bookings", label: "Viewing Management" },
   { href: "/admin/payments", label: "Payments" },
+  { href: "/admin/content", label: "Site Content" },
+  { href: "/admin/ai", label: "AI Insights" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -44,12 +47,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-charcoal-950">
       <header className="border-b border-white/10 px-6 py-5 lg:px-10">
-        <MotionLink
-          href="/"
-          whileHover={{ scale: 1.03 }}
-          className="font-display text-xl font-semibold text-white"
-        >
-          THE<span className="text-teal-400">V</span>HOMES <span className="text-sm text-white/40">Admin</span>
+        <MotionLink href="/" whileHover={{ scale: 1.03 }} aria-label="TheVHomes home" className="flex items-center gap-2">
+          <AnimatedLogo size="sm" />
+          <span className="text-sm text-white/40">Admin</span>
         </MotionLink>
         <nav className="mt-4 flex flex-wrap gap-2">
           {NAV.map((item) => (

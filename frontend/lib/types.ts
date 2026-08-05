@@ -5,7 +5,10 @@ export type PropertyType =
   | "land"
   | "office"
   | "hotel"
-  | "shortlet";
+  | "shortlet"
+  | "commercial"
+  | "warehouse"
+  | "event_center";
 
 export type Purpose = "buy" | "rent" | "invest" | "shortlet";
 
@@ -173,6 +176,7 @@ export interface Property {
   swimming_pool: boolean;
   amenities: string[];
   video_urls: string[];
+  youtube_video_id?: string;
   virtual_tour_url?: string;
   verification_status: VerificationStatus;
   available: boolean;
@@ -182,9 +186,32 @@ export interface Property {
   created_at: string;
   cover_image_url?: string;
   listing_status?: ListingStatus;
+  /** 0–100 "Listing Quality" score from TheVHomes AI Engine. */
+  completeness_score?: number;
+  /** clear | pending_review | dismissed — see internal/ai/moderation.go. */
+  moderation_status?: string;
   is_paid_viewing?: boolean;
   viewing_fee?: number;
   tour?: PropertyTour | null;
+}
+
+/**
+ * Listing quality report from TheVHomes AI Engine's completeness scorer.
+ * The breakdown is per-field so the dashboard can show agents exactly what to
+ * fix rather than a bare percentage.
+ */
+export interface ListingQualityItem {
+  field: string;
+  earned: number;
+  max: number;
+  hint?: string;
+}
+
+export interface ListingQuality {
+  completeness_score: number;
+  breakdown: ListingQualityItem[];
+  suggestions: string[];
+  moderation_status: string;
 }
 
 export interface PropertySearchFilters {
@@ -291,4 +318,29 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+}
+
+/**
+ * Admin-editable content for the public About page (Company Overview,
+ * Mission, Vision, Core Values, Why Choose Us, Areas We Operate, Services
+ * Offered, Testimonials, and the Founder section). Stored server-side as a
+ * single JSON document under the "about" key so it can be edited from
+ * /admin/content without a schema migration for every copy change.
+ */
+export interface AboutPageContent {
+  overview: string;
+  mission: string;
+  vision: string;
+  core_values: { title: string; description: string }[];
+  why_choose_us: string[];
+  areas_we_operate: string[];
+  services_offered: string[];
+  testimonials: { name: string; role: string; quote: string }[];
+  founder: {
+    name: string;
+    title: string;
+    bio: string;
+    message: string;
+    vision: string;
+  };
 }

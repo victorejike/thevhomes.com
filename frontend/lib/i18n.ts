@@ -58,3 +58,14 @@ export const dictionary = {
 export function t(locale: Locale, key: keyof typeof dictionary["en"]): string {
   return dictionary[locale]?.[key] ?? dictionary.en[key];
 }
+
+/**
+ * Words/phrases that rotate through the hero headline's accent span (e.g.
+ * "Find Your ___"), timed to feel cinematic rather than a fast ticker so it
+ * complements the slow-moving hero video behind it.
+ */
+export const heroRotatingWords: Record<Locale, string[]> = {
+  en: ["Dream Property", "Perfect Home", "Next Investment", "Ideal Address"],
+  fr: ["Propriété de Rêve", "Maison Idéale", "Prochain Investissement", "Adresse Idéale"],
+  ar: ["منزل أحلامك", "المنزل المثالي", "استثمارك القادم", "العنوان المثالي"],
+};

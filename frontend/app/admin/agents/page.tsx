@@ -71,12 +71,12 @@ export default function AdminAgentApplicationsPage() {
                 <p className="mt-1 text-xs text-white/40">Submitted {formatDate(app.submitted_at)}</p>
               </div>
               {app.status === "pending" || app.status === "under_review" ? (
-                <div className="flex items-center gap-2">
+                <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                   <input
                     placeholder="Notes (optional)"
                     value={notes[app.id] ?? ""}
                     onChange={(e) => setNotes((n) => ({ ...n, [app.id]: e.target.value }))}
-                    className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white"
+                    className="w-full min-w-0 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white sm:w-auto"
                   />
                   <button
                     onClick={() => reviewMutation.mutate({ id: app.id, decision: "approve" })}

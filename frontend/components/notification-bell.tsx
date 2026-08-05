@@ -51,7 +51,7 @@ export function NotificationBell() {
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className="absolute right-0 z-50 mt-2 w-80 rounded-2xl border border-white/10 bg-charcoal-900 p-3 shadow-2xl"
+            className="absolute right-0 z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-charcoal-900 p-3 shadow-2xl"
           >
             <div className="flex items-center justify-between px-2 py-1">
               <p className="text-sm font-semibold text-white">Notifications</p>

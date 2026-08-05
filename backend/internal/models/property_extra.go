@@ -8,17 +8,32 @@ import (
 
 // ListingStatus is the property review/publication workflow state, per the
 // "Property Verification" requirements (Draft -> Pending Review -> Under
-// Inspection -> Verified / Rejected). Only "verified" listings are publicly
+// Inspection -> Changes Requested -> Verified -> Published, or Rejected at
+// any review step). Only "verified"/"published" listings are publicly
 // searchable/visible.
 type ListingStatus string
 
 const (
-	ListingDraft           ListingStatus = "draft"
-	ListingPendingReview   ListingStatus = "pending_review"
-	ListingUnderInspection ListingStatus = "under_inspection"
-	ListingVerified        ListingStatus = "verified"
-	ListingRejected        ListingStatus = "rejected"
+	ListingDraft            ListingStatus = "draft"
+	ListingPendingReview    ListingStatus = "pending_review"
+	ListingUnderInspection  ListingStatus = "under_inspection"
+	ListingChangesRequested ListingStatus = "changes_requested"
+	ListingVerified         ListingStatus = "verified"
+	ListingPublished        ListingStatus = "published"
+	ListingRejected         ListingStatus = "rejected"
 )
+
+// PubliclyVisibleListingStatuses are the statuses under which a listing is
+// searchable/visible to the general public (see PropertyHandler.
+// applyVisibility and .Get).
+func PubliclyVisibleListingStatuses() []ListingStatus {
+	return []ListingStatus{ListingVerified, ListingPublished}
+}
+
+// IsPubliclyVisible reports whether s is one of PubliclyVisibleListingStatuses.
+func (s ListingStatus) IsPubliclyVisible() bool {
+	return s == ListingVerified || s == ListingPublished
+}
 
 // PropertyReview is the admin QA checklist completed before a listing can go
 // live publicly.

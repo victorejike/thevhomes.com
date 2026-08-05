@@ -3,7 +3,7 @@ services:
     name: thevhomes-api
     env: docker
     plan: starter
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /health
     envVars:
       - key: APP_ENV

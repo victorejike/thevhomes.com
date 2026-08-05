@@ -102,7 +102,7 @@ func (h *AIHandler) Ask(c *gin.Context) {
 func (h *AIHandler) parseIntentWithLLM(ctx context.Context, message string) (parsedFilters, error) {
 	client := openai.NewClient(h.Cfg.OpenAIAPIKey)
 	resp, err := client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model: "gpt-4.1-mini",
+		Model: "gpt-4-turbo-preview",
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleSystem, Content: "You are a property search assistant. Parse the user's request into explicit property search filters and return the result using the provided function."},
 			{Role: openai.ChatMessageRoleUser, Content: message},
@@ -121,12 +121,12 @@ func (h *AIHandler) parseIntentWithLLM(ctx context.Context, message string) (par
 						"property_type": map[string]any{
 							"type":        "string",
 							"description": "The property type, such as apartment, villa, or shortlet.",
-							"enum":        []any{"apartment", "villa", "duplex", "land", "office", "hotel", "shortlet"},
+							"enum":        []string{"apartment", "villa", "duplex", "land", "office", "hotel", "shortlet"},
 						},
 						"purpose": map[string]any{
 							"type":        "string",
 							"description": "The search purpose, such as buy, rent, invest, or shortlet.",
-							"enum":        []any{"buy", "rent", "invest", "shortlet"},
+							"enum":        []string{"buy", "rent", "invest", "shortlet"},
 						},
 						"min_bedrooms": map[string]any{
 							"type":        "integer",

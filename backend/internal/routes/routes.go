@@ -38,6 +38,7 @@ func Setup(router *gin.Engine, db *gorm.DB, cfg *config.Config, hub *ws.Hub, pro
 	aiHandler := handlers.NewAIHandler(db, cfg)
 	notificationHandler := handlers.NewNotificationHandler(db)
 	adminHandler := handlers.NewAdminHandler(db)
+	listingQualityHandler := handlers.NewListingQualityHandler(db)
 
 	auth := middleware.AuthRequired(cfg.JWTAccessSecret)
 	optionalAuth := middleware.OptionalAuth(cfg.JWTAccessSecret)
@@ -81,6 +82,8 @@ func Setup(router *gin.Engine, db *gorm.DB, cfg *config.Config, hub *ws.Hub, pro
 		properties.POST("/:id/tour/start", auth, agentOrAdmin, tourHandler.Start)
 		properties.POST("/:id/tour/scenes", auth, agentOrAdmin, tourHandler.AddScene)
 		properties.POST("/:id/tour/complete", auth, agentOrAdmin, tourHandler.Complete)
+		properties.GET("/:id/quality", auth, agentOrAdmin, listingQualityHandler.Quality)
+		properties.POST("/:id/rescore", auth, agentOrAdmin, listingQualityHandler.Rescore)
 
 		// 3D-reconstruction provider async callback (Matterport/KIRI/Luma/
 		// Polycam). In production, verify a shared-secret signature header
@@ -175,5 +178,7 @@ func Setup(router *gin.Engine, db *gorm.DB, cfg *config.Config, hub *ws.Hub, pro
 		admin.PATCH("/agent-applications/:id", agentApplicationHandler.AdminReview)
 		admin.GET("/properties/review-queue", propertyReviewHandler.AdminQueue)
 		admin.PATCH("/properties/:id/review", propertyReviewHandler.AdminReview)
+		admin.GET("/moderation-queue", listingQualityHandler.ModerationQueue)
+		admin.PATCH("/moderation-queue/:id", listingQualityHandler.ResolveModeration)
 	}
 }

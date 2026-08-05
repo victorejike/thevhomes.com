@@ -18,17 +18,35 @@ const (
 )
 
 // PropertyType enumerates the kinds of property listed on the platform.
+//
+// "House for Sale"/"House for Rent" from the Phase 4 spec are not separate
+// types here — they're simply PropertyDuplex/PropertyVilla/PropertyApartment
+// combined with PurposeBuy/PurposeRent, which this enum + Purpose already
+// represent. PropertyCommercial, PropertyWarehouse, and PropertyEventCenter
+// were added in Phase 4 to complete the required 10-category list.
 type PropertyType string
 
 const (
-	PropertyApartment PropertyType = "apartment"
-	PropertyVilla     PropertyType = "villa"
-	PropertyDuplex    PropertyType = "duplex"
-	PropertyLand      PropertyType = "land"
-	PropertyOffice    PropertyType = "office"
-	PropertyHotel     PropertyType = "hotel"
-	PropertyShortlet  PropertyType = "shortlet"
+	PropertyApartment   PropertyType = "apartment"
+	PropertyVilla       PropertyType = "villa"
+	PropertyDuplex      PropertyType = "duplex"
+	PropertyLand        PropertyType = "land"
+	PropertyOffice      PropertyType = "office"
+	PropertyHotel       PropertyType = "hotel"
+	PropertyShortlet    PropertyType = "shortlet"
+	PropertyCommercial  PropertyType = "commercial"
+	PropertyWarehouse   PropertyType = "warehouse"
+	PropertyEventCenter PropertyType = "event_center"
 )
+
+// AllPropertyTypes is used by the publishing-form handler to validate
+// incoming property_type values and to tell the frontend which fields are
+// relevant for a given category (see propertyFieldRequirements in
+// property_handler.go).
+var AllPropertyTypes = []PropertyType{
+	PropertyApartment, PropertyVilla, PropertyDuplex, PropertyLand, PropertyOffice,
+	PropertyHotel, PropertyShortlet, PropertyCommercial, PropertyWarehouse, PropertyEventCenter,
+}
 
 // Purpose describes why a property is listed.
 type Purpose string
@@ -122,28 +140,43 @@ func (a Agent) CanPublishListings() bool {
 // Property is a single real-estate listing.
 type Property struct {
 	BaseModel
-	Title              string             `json:"title"`
-	Slug               string             `gorm:"uniqueIndex" json:"slug"`
-	Description        string             `json:"description"`
-	Price              float64            `json:"price"`
-	Currency           string             `gorm:"default:'NGN'" json:"currency"`
-	Address            string             `json:"address"`
-	City               string             `json:"city"`
-	Country            string             `gorm:"default:'Nigeria'" json:"country"`
-	Latitude           float64            `json:"latitude"`
-	Longitude          float64            `json:"longitude"`
-	PropertyType       PropertyType       `gorm:"type:varchar(20)" json:"property_type"`
-	Purpose            Purpose            `gorm:"type:varchar(20)" json:"purpose"`
-	Bedrooms           int                `json:"bedrooms"`
-	Bathrooms          int                `json:"bathrooms"`
-	SquareMeters       float64            `json:"square_meters"`
-	Furnished          bool               `json:"furnished"`
-	Parking            bool               `json:"parking"`
-	Security           bool               `json:"security"`
-	SwimmingPool       bool               `json:"swimming_pool"`
-	Amenities          StringArray        `gorm:"type:text[]" json:"amenities"`
-	VideoURLs          StringArray        `gorm:"type:text[]" json:"video_urls"`
-	VirtualTourURL     string             `json:"virtual_tour_url"`
+	Title          string       `json:"title"`
+	Slug           string       `gorm:"uniqueIndex" json:"slug"`
+	Description    string       `json:"description"`
+	Price          float64      `json:"price"`
+	Currency       string       `gorm:"default:'NGN'" json:"currency"`
+	Negotiable     bool         `gorm:"default:false" json:"negotiable"`
+	Address        string       `json:"address"`
+	City           string       `json:"city"`
+	State          string       `json:"state"`
+	Area           string       `json:"area"`
+	Country        string       `gorm:"default:'Nigeria'" json:"country"`
+	Latitude       float64      `json:"latitude"`
+	Longitude      float64      `json:"longitude"`
+	PropertyType   PropertyType `gorm:"type:varchar(20)" json:"property_type"`
+	Purpose        Purpose      `gorm:"type:varchar(20)" json:"purpose"`
+	Bedrooms       int          `json:"bedrooms"`
+	Bathrooms      int          `json:"bathrooms"`
+	Toilets        int          `json:"toilets"`
+	ParkingSpaces  int          `json:"parking_spaces"`
+	SquareMeters   float64      `json:"square_meters"`
+	LandSize       float64      `json:"land_size"`
+	BuildingSize   float64      `json:"building_size"`
+	YearBuilt      int          `json:"year_built"`
+	Furnished      bool         `json:"furnished"`
+	Parking        bool         `json:"parking"`
+	Security       bool         `json:"security"`
+	SwimmingPool   bool         `json:"swimming_pool"`
+	Amenities      StringArray  `gorm:"type:text[]" json:"amenities"`
+	VideoURLs      StringArray  `gorm:"type:text[]" json:"video_urls"`
+	VirtualTourURL string       `json:"virtual_tour_url"`
+
+	// YoutubeVideoID stores only the extracted 11-character YouTube video ID
+	// (never the full URL) so the frontend can embed it via the
+	// privacy-enhanced youtube-nocookie.com player without redirecting users
+	// away from the property page. See utils.ExtractYouTubeID.
+	YoutubeVideoID string `json:"youtube_video_id,omitempty"`
+
 	VerificationStatus VerificationStatus `gorm:"type:varchar(20);default:'pending'" json:"verification_status"`
 	Available          bool               `gorm:"default:true" json:"available"`
 
@@ -152,10 +185,21 @@ type Property struct {
 	CoverImageURL string `json:"cover_image_url"`
 
 	// ListingStatus is the admin review workflow state (draft -> pending_review
-	// -> under_inspection -> verified/rejected). Only "verified" listings are
+	// -> under_inspection -> changes_requested -> verified -> published, or
+	// rejected at any review step). Only "verified"/"published" listings are
 	// publicly searchable. A listing cannot leave "draft" until it has a
 	// PropertyTour in TourReady status.
 	ListingStatus ListingStatus `gorm:"type:varchar(20);default:'draft'" json:"listing_status"`
+
+	// CompletenessScore (0-100) and ModerationScore/ModerationStatus are
+	// computed by TheVHomes AI Engine (internal/ai) whenever a listing is
+	// created or updated — see property_handler.go's calls into
+	// ai.Engine.EvaluateListing. They are advisory/quality signals, not gates,
+	// except that a high ModerationScore routes the listing into the admin
+	// moderation queue instead of blocking it outright (see ai/moderation.go).
+	CompletenessScore int    `gorm:"default:0" json:"completeness_score"`
+	ModerationScore   int    `gorm:"default:0" json:"moderation_score"`
+	ModerationStatus  string `gorm:"type:varchar(20);default:'clear'" json:"moderation_status"` // clear | pending_review | dismissed
 
 	// Paid viewing service.
 	IsPaidViewing bool    `gorm:"default:false" json:"is_paid_viewing"`
@@ -175,6 +219,13 @@ type PropertyImage struct {
 	PropertyID uuid.UUID `gorm:"type:uuid;index" json:"property_id"`
 	URL        string    `json:"url"`
 	IsPrimary  bool      `gorm:"default:false" json:"is_primary"`
+
+	// PerceptualHash is a 64-bit average-hash (see ai/imagequality.go)
+	// computed from the decoded image's pixels, hex-encoded. Two images of
+	// the same photo (even re-compressed/resized) hash to the same or
+	// near-identical value, which is how the upload flow flags accidental
+	// duplicate uploads within one listing before publish.
+	PerceptualHash string `gorm:"index" json:"perceptual_hash,omitempty"`
 }
 
 // BookingStatus tracks the lifecycle of a viewing request.

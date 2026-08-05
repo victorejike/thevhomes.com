@@ -84,6 +84,25 @@ export default function MyListingsPage() {
                 <View size={13} /> Manage 3D Tour
               </MotionLink>
             </div>
+            {typeof property.completeness_score === "number" && (
+              <div className="flex items-center gap-2 px-1">
+                <div className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className={`h-full rounded-full ${
+                      property.completeness_score >= 90
+                        ? "bg-teal-gradient"
+                        : property.completeness_score >= 70
+                          ? "bg-amber-400"
+                          : "bg-red-400"
+                    }`}
+                    style={{ width: `${property.completeness_score}%` }}
+                  />
+                </div>
+                <span className="text-[11px] tabular-nums text-white/50">
+                  Quality {property.completeness_score}%
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>

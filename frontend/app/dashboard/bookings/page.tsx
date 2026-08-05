@@ -27,7 +27,7 @@ export default function BookingsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-semibold text-white">My Viewings</h1>
         <MotionLink
           href="/dashboard/bookings/new"
@@ -114,7 +114,7 @@ export default function BookingsPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-charcoal-900 p-6 text-center shadow-2xl"
+            className="max-h-[90vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-white/10 bg-charcoal-900 p-6 text-center shadow-2xl"
           >
             <h3 className="font-display text-lg font-semibold text-white">Viewing Ticket</h3>
             <p className="mt-1 text-sm text-white/50">{ticketFor.property?.title}</p>

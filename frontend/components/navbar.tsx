@@ -4,9 +4,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
 import { MotionLink, tapScale, tapScaleSmall } from "./motion-link";
+import { AnimatedLogo } from "./animated-logo";
 import { useLocaleStore } from "@/lib/store";
 import { t } from "@/lib/i18n";
 
@@ -38,10 +38,13 @@ export function Navbar() {
       }`}
     >
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-8">
-        <MotionLink href="/" whileHover={{ scale: 1.03 }} className="flex items-center gap-2">
-          <span className="font-display text-2xl font-semibold tracking-tight text-white">
-            THE<span className="text-teal-400">V</span>HOMES
-          </span>
+        <MotionLink
+          href="/"
+          whileHover={{ scale: 1.03 }}
+          aria-label="TheVHomes home"
+          className="flex items-center gap-2"
+        >
+          <AnimatedLogo size="md" />
         </MotionLink>
 
         <div className="hidden items-center gap-6 md:flex">
@@ -60,7 +63,6 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           <LanguageSwitcher />
-          <ThemeToggle />
           <MotionLink
             href="/login"
             whileHover={{ scale: 1.08 }}
@@ -109,7 +111,6 @@ export function Navbar() {
             ))}
             <div className="mt-2 flex items-center gap-3">
               <LanguageSwitcher />
-              <ThemeToggle />
             </div>
             <MotionLink
               href="/login"

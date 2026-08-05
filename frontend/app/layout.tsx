@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "@/lib/providers";
+import { CookieConsentBanner } from "@/components/cookie-consent-banner";
+import { CookiePreferencesModal } from "@/components/cookie-preferences-modal";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -71,7 +73,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <CookieConsentBanner />
+          <CookiePreferencesModal />
+        </Providers>
       </body>
     </html>
   );

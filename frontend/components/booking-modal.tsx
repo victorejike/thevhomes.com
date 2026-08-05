@@ -68,7 +68,7 @@ export function BookingModal({ property, onClose }: { property: Property; onClos
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-charcoal-900 p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-charcoal-900 p-6 shadow-2xl"
       >
         <div className="flex items-center justify-between">
           <h3 className="font-display text-lg font-semibold text-white">Book a Viewing</h3>

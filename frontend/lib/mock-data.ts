@@ -1,4 +1,4 @@
-import type { Investment, Property } from "./types";
+import type { AboutPageContent, Investment, Property } from "./types";
 
 /**
  * Fallback content shown when the backend API is unreachable (e.g. during
@@ -320,3 +320,70 @@ export const MOCK_AGENTS = Array.from(
     MOCK_PROPERTIES.filter((p) => p.agent).map((p) => [p.agent!.id, p.agent!])
   ).values()
 );
+
+/**
+ * Default About page content, shown until an admin edits it from
+ * /admin/content (see api.siteContent.getAbout / updateAbout). Mirrors
+ * exactly what GET /api/v1/site-content/about returns.
+ */
+export const DEFAULT_ABOUT_CONTENT: AboutPageContent = {
+  overview:
+    "THE VHOMES LIMITED is a premium real estate marketplace and property management platform based in Abuja, Nigeria. We connect verified buyers, renters, and investors with trusted, identity-verified agents and inspected properties across Nigeria and beyond — combining interactive 3D property tours, secure in-app bookings, and rigorous listing verification to make real estate transactions safer and more transparent.",
+  mission:
+    "To make property discovery, viewing, and transactions in Africa as safe, transparent, and effortless as they are anywhere else in the world — by verifying every agent, every listing, and every transaction on our platform.",
+  vision:
+    "To become the most trusted verified real estate marketplace in Africa, where no buyer ever has to gamble on a property they haven't truly seen, and no honest agent is undercut by fraud.",
+  core_values: [
+    { title: "Trust & Verification", description: "Every agent passes NIN identity verification; every listing is inspected before it goes live." },
+    { title: "Transparency", description: "Clear pricing, honest descriptions, and an auditable review trail for every listing." },
+    { title: "Innovation", description: "Interactive 3D tours and AI-assisted search bring properties to buyers, wherever they are." },
+    { title: "Customer First", description: "Every feature — from live chat to paid viewing protection — exists to protect our customers." },
+  ],
+  why_choose_us: [
+    "Every agent carries a permanent, verified TVH-AGT-###### number — never anonymous, never reused.",
+    "Every property is inspected and reviewed by our team before it appears publicly.",
+    "Interactive 3D walkthroughs let you inspect a home before you ever travel to see it.",
+    "Secure, trackable payments for viewings and bookings via Paystack and Flutterwave.",
+    "Real-time chat and live video tours connect you directly with the listing agent.",
+    "An AI assistant that understands natural-language search, not just keyword filters.",
+  ],
+  areas_we_operate: ["Abuja (FCT)", "Lagos", "Port Harcourt", "Kano", "Ibadan", "Dubai (select listings)"],
+  services_offered: [
+    "Buying & selling verified residential and commercial property",
+    "Long-term rentals",
+    "Shortlet & hotel-style stays",
+    "Real estate investment opportunities",
+    "Property management for owners",
+    "Agent onboarding & verification",
+  ],
+  testimonials: [
+    {
+      name: "Amaka O.",
+      role: "Verified Buyer, Abuja",
+      quote:
+        "The 3D tour saved me three trips across the city. By the time I visited in person, I already knew exactly what I was walking into.",
+    },
+    {
+      name: "Chidi E.",
+      role: "Verified Agent, TVH-AGT-000042",
+      quote:
+        "My verified badge gets me more serious inquiries than any other platform I have listed on. Buyers actually trust what they are seeing before they even book a viewing.",
+    },
+    {
+      name: "Grace N.",
+      role: "Verified Renter, Lagos",
+      quote:
+        "Booking a viewing and paying the fee all happened inside the app. No cash-in-hand meetings, no guesswork.",
+    },
+  ],
+  founder: {
+    name: "Founder & CEO",
+    title: "THE VHOMES LIMITED",
+    bio:
+      "TheVHomes was founded to close the trust gap in Nigeria's real estate market — where buyers historically had no reliable way to verify a property or an agent before money changed hands. With a background spanning real estate operations and technology, our founder set out to build a platform where verification isn't an afterthought, it's the entire foundation.",
+    message:
+      "\"Every feature we build starts with one question: does this make it harder to defraud our customers, or easier? If the answer isn't 'harder,' we don't ship it. Trust is not a marketing slogan here — it's the product.\"",
+    vision:
+      "In five years, I want TheVHomes to be the platform every serious buyer, renter, and agent in Africa defaults to — not because it's the biggest, but because it's the one you can trust with your money and your time.",
+  },
+};

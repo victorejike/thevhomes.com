@@ -1,12 +1,18 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, CalendarCheck2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocaleStore } from "@/lib/store";
-import { t } from "@/lib/i18n";
+import { t, heroRotatingWords } from "@/lib/i18n";
 import { SearchBar } from "./search-bar";
+import { MobileSearchToggle } from "./mobile-search-toggle";
 import { MotionLink, tapScale } from "./motion-link";
+
+// How long each rotating headline word stays put before crossfading to the
+// next one. Deliberately slow/cinematic so it feels like part of the hero
+// video's own pacing rather than a fast-ticking banner.
+const ROTATE_WORD_MS = 3600;
 
 // Real cinematic property-walkthrough footage by default (hosted on Mixkit's
 // CDN, free to hotlink under the Mixkit license). Override with
@@ -21,6 +27,39 @@ const HERO_POSTER =
 export function HeroSection() {
   const { locale } = useLocaleStore();
   const [videoFailed, setVideoFailed] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const rotatingWords = heroRotatingWords[locale] ?? heroRotatingWords.en;
+  const [wordIndex, setWordIndex] = useState(0);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [wordBoxWidth, setWordBoxWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (reducedMotion || rotatingWords.length <= 1) return;
+    const id = setInterval(() => {
+      setWordIndex((i) => (i + 1) % rotatingWords.length);
+    }, ROTATE_WORD_MS);
+    return () => clearInterval(id);
+  }, [reducedMotion, rotatingWords.length]);
+
+  // Reserve exactly as much horizontal space as the single widest rotating
+  // word needs (measured at the heading's actual rendered font size) so the
+  // line's total width never changes between rotations — that keeps "Find
+  // Your" perfectly still while both words stay on one line. Re-measured on
+  // resize since the heading's font size changes across breakpoints.
+  useLayoutEffect(() => {
+    function measure() {
+      const container = measureRef.current;
+      if (!container) return;
+      let max = 0;
+      Array.from(container.children).forEach((child) => {
+        max = Math.max(max, (child as HTMLElement).getBoundingClientRect().width);
+      });
+      if (max > 0) setWordBoxWidth(max);
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [rotatingWords]);
 
   return (
     <section className="relative flex h-[100svh] min-h-[640px] w-full items-center justify-center overflow-hidden bg-charcoal-950">
@@ -67,8 +106,36 @@ export function HeroSection() {
           className="font-display text-3xl font-semibold leading-[1.1] text-white sm:text-5xl lg:text-7xl"
         >
           {t(locale, "hero_title_1")}{" "}
-          <span className="bg-teal-gradient bg-clip-text text-transparent">
-            {t(locale, "hero_title_2")}
+          <span
+            className="relative inline-block text-left align-baseline"
+            style={wordBoxWidth ? { width: `${wordBoxWidth}px` } : undefined}
+          >
+            {/* Invisible ruler: renders every rotating word (in the exact
+                same font/size) off-screen purely to measure the widest one
+                in pixels — see the effect above. */}
+            <span
+              ref={measureRef}
+              aria-hidden="true"
+              className="pointer-events-none absolute left-0 top-0 -z-10 whitespace-nowrap opacity-0"
+            >
+              {rotatingWords.map((word) => (
+                <span key={word} className="block">
+                  {word}
+                </span>
+              ))}
+            </span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={reducedMotion ? "static" : wordIndex}
+                initial={reducedMotion ? false : { opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reducedMotion ? undefined : { opacity: 0, y: -14 }}
+                transition={{ duration: 0.7, ease: "easeInOut" }}
+                className="inline-block whitespace-nowrap bg-teal-gradient bg-clip-text text-transparent"
+              >
+                {rotatingWords[wordIndex]}
+              </motion.span>
+            </AnimatePresence>
           </span>
         </motion.h1>
 
@@ -111,7 +178,15 @@ export function HeroSection() {
           transition={{ duration: 0.7, delay: 0.4 }}
           className="mt-12 w-full"
         >
-          <SearchBar />
+          {/* Mobile: compact floating search icon that expands on tap, to
+              preserve space for the hero video/animation. */}
+          <div className="sm:hidden">
+            <MobileSearchToggle />
+          </div>
+          {/* Tablet/desktop: full search panel, unchanged. */}
+          <div className="hidden sm:block">
+            <SearchBar />
+          </div>
         </motion.div>
       </div>
     </section>

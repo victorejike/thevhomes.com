@@ -1,4 +1,5 @@
 import { MotionLink } from "./motion-link";
+import { AnimatedLogo } from "./animated-logo";
 
 export function AuthFormShell({
   title,
@@ -17,9 +18,10 @@ export function AuthFormShell({
         <MotionLink
           href="/"
           whileHover={{ scale: 1.05 }}
-          className="mb-8 block text-center font-display text-2xl font-semibold text-white"
+          aria-label="TheVHomes home"
+          className="mb-8 flex justify-center"
         >
-          THE<span className="text-teal-400">V</span>HOMES
+          <AnimatedLogo size="md" />
         </MotionLink>
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 shadow-2xl">
           <h1 className="font-display text-2xl font-semibold text-white">{title}</h1>

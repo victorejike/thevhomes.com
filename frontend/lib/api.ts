@@ -1,4 +1,5 @@
 import type {
+  AboutPageContent,
   Agent,
   AgentApplication,
   ApiResponse,
@@ -10,6 +11,7 @@ import type {
   IdentityVerification,
   Investment,
   LiveViewingSession,
+  ListingQuality,
   PaginatedProperties,
   Payment,
   Property,
@@ -17,7 +19,7 @@ import type {
   PropertyTour,
   ViewingTicket,
 } from "./types";
-import { MOCK_AGENTS, MOCK_INVESTMENTS, MOCK_PROPERTIES } from "./mock-data";
+import { DEFAULT_ABOUT_CONTENT, MOCK_AGENTS, MOCK_INVESTMENTS, MOCK_PROPERTIES } from "./mock-data";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "https://thevhomes-com.onrender.com/api/v1";
@@ -99,6 +101,12 @@ export const api = {
     remove: (id: string) => request<null>(`/properties/${id}`, { method: "DELETE" }),
     submitForReview: (id: string) =>
       request<{ listing_status: string }>(`/properties/${id}/submit-for-review`, { method: "POST" }),
+    quality: (id: string) => request<ListingQuality>(`/properties/${id}/quality`),
+    rescore: (id: string) =>
+      request<{ completeness_score: number; moderation_status: string }>(
+        `/properties/${id}/rescore`,
+        { method: "POST" }
+      ),
   },
   investments: {
     async list(): Promise<Investment[]> {
@@ -314,6 +322,17 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ filename, content_type: contentType }),
       }),
+  },
+  siteContent: {
+    async getAbout(): Promise<AboutPageContent> {
+      try {
+        return await request<AboutPageContent>("/site-content/about");
+      } catch {
+        return DEFAULT_ABOUT_CONTENT;
+      }
+    },
+    updateAbout: (payload: AboutPageContent) =>
+      request<AboutPageContent>("/site-content/about", { method: "PUT", body: JSON.stringify(payload) }),
   },
   ai: {
     async ask(message: string) {

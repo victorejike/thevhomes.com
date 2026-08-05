@@ -117,7 +117,7 @@ export default function AdminPropertyReviewPage() {
                   onChange={(e) => setNotes((n) => ({ ...n, [property.id]: e.target.value }))}
                   className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => reviewMutation.mutate({ id: property.id, decision: "under_inspection" })}
                     className="rounded-full bg-sky-500/20 px-3 py-1.5 text-xs font-medium text-sky-300 hover:bg-sky-500/30"
